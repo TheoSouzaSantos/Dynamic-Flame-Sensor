@@ -26,4 +26,4 @@ async function autenticar(req, res, next) {
     }
 }
 
-modules.exports = autenticar;
+module.exports = autenticar;
