@@ -1,4 +1,4 @@
-const {db, admin} = require('./config/db');
+const {db, admin} = require('../config/db');
 
 async function autenticar(req, res, next) {
     const header = req.headers.authorization;
