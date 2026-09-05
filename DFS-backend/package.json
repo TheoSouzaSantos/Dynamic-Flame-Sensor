@@ -11,10 +11,7 @@
     "express": "^5.2.1",
     "firebase": "^12.15.0",
     "firebase-admin": "^14.3.0"
-    
   },
-  "scripts": {
-    
-  },
+  "scripts": {},
   "private": true
 }
