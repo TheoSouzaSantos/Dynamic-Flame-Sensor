@@ -1,0 +1,2 @@
+expo.modules.dfsmodule
+drawable baseline_local_fire_department_24
