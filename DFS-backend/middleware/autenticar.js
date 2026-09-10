@@ -23,7 +23,11 @@ async function autenticar(req, res, next) {
         
         try{
             const deco_token = jwt.verify(token, secret);
+            if(!deco_token.placaId){
+                return res.status(401).json({erro: "Sem ID da placa"})
+            }
             req.placa = deco_token;
+            
         }catch{
             const deco_token = await admin.auth().verifyIdToken(token);
             req.usuario = deco_token;

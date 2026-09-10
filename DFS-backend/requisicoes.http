@@ -60,3 +60,7 @@ Content-Type: application/json
 Authorization: Bearer {{loginPlaca.response.body.accessToken}}
 
 { "estado": "gas", "leitura": 900 }
+
+### Listar minhas placas
+GET {{baseUrl}}/placas
+Authorization: Bearer pTykVb7ykiZafTbn8cCwepACOyw1

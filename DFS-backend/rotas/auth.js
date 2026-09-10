@@ -57,7 +57,7 @@ router.post('/provisionar', async (req, res) => {
             return res.status(409).json({erro: "A placa já está sendo usada"});
         }
         if(placa.expiraEm <= Date.now()){
-            return res.status(403).json({erro: "Token expirado"});
+            return res.status(403).json({erro: "Código expirado"});
         }
         
         const placaId = resultado.docs[0].id;
@@ -72,7 +72,7 @@ router.post('/provisionar', async (req, res) => {
 
         
         const token = tokenPlaca(placaId);
-
+        
         return res.status(200).json({ accessToken: token, placaId })
 
     } catch (error) {

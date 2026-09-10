@@ -1,44 +1,9 @@
 const express = require('express');
 const autenticar = require('../middleware/autenticar')
-const { db, admin } = require('../config/db');
+const { db } = require('../config/db');
 const handleError = require('../utils/handleError');
 const router = express.Router();
 
-
-
- router.get('/', autenticar, async (req, res) => {
-    try {
-        const sensores = await db.collection('sensores').get();
-        const listaSensor = sensores.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
-        res.json(listaSensor);
-    } catch (error) {
-        handleError(res, error);
-    }
-}); 
-
-router.post('/', autenticar, async (req, res) => {
-    try {
-        const dadosSensor = req.body;
-        const novoSensor = await db.collection('sensores').add(dadosSensor);
-        res.status(201).send(`Id adicionado: ${novoSensor.id}`);
-    } catch (error) {
-        handleError(res, error);
-    }
-});
-
-router.patch('/:id', autenticar, async (req, res) => {
-    try {
-        const idSensor = req.params.id;
-        const novosDadosSensor = req.body;
-        await db.collection('sensores').doc(idSensor).update(novosDadosSensor);
-        res.send('Atualizado!');
-    } catch (error) {
-        handleError(res, error);
-    }
-});
 
 router.post('/leitura', autenticar, async (req, res) => {
     try {
@@ -46,14 +11,20 @@ router.post('/leitura', autenticar, async (req, res) => {
             return res.status(403).json({erro: "A rota precisa ser acessada por uma placa"});
         }
         const placaId = req.placa.placaId;
+        const { estado, leitura } = req.body || {};
+
+        if((estado !== "chama" && estado !== "gas" && estado !== "seguro") || !(typeof leitura === 'number' && Number.isFinite(leitura))){
+            return res.status(400).json({erro: "Campo inválido"});
+        }
+
         const snapshot = await db.collection('placas').doc(placaId).get();
 
         if(!snapshot.exists){
             return res.status(404).json({erro: "A placa não existe"});
         }
 
-        const { estado, leitura } = req.body || {};
-
+        
+       
         const placa = snapshot.data();
 
         if(placa.status !== "ativa"){
@@ -62,9 +33,8 @@ router.post('/leitura', autenticar, async (req, res) => {
 
         const ultimoEstado = placa.ultimoEstado ?? "seguro";
         
-        if(estado !== "chama" && estado !== "gas" && estado !== "seguro"){
-            return res.status(400).json({erro: "Campo inválido"});
-        }
+        
+
         const intervalo = 3 * 60 * 1000;
        
 
