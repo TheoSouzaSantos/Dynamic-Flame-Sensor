@@ -1,9 +1,8 @@
-require('dotenv').config();
 import axios from "axios";
 
-const PORT1 = "";
+const API_LINK = process.env.EXPO_PUBLIC_API_LINK;
 const api = axios.create({
-    baseURL: `http://${PORT1}`,
+    baseURL: API_LINK,
     timeout: 5000,
 });
 
