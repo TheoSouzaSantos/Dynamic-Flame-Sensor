@@ -65,7 +65,9 @@ router.post('/provisionar', async (req, res) => {
         await db.collection('placas').doc(placaId).update({
             chipId: chipId,
             secretHash: secretHash,
-            status: 'ativa'
+            status: 'ativa',
+            ultimoEstado: 'seguro',
+            ultimoBeat: 0
         });
 
         

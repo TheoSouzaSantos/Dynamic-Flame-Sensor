@@ -10,31 +10,53 @@ Content-Type: application/json
   "secret": "COLE_O_DEVICE_SECRET_CRU"
 }
 
-### Leitura SEM chama (1ª vez → grava; repetida → não grava)
+### Leitura em repouso (rode 2x — a 2ª não deve gravar)
 POST {{baseUrl}}/sensores/leitura
 Content-Type: application/json
 Authorization: Bearer {{loginPlaca.response.body.accessToken}}
 
 {
-  "chama": false,
-  "valor": 120
+  "estado": "normal",
+  "leitura": 90
 }
 
-### Leitura COM chama (virada de estado → deve gravar em "leituras")
+### Virada pra gás — deve gravar (estado mudou)
 POST {{baseUrl}}/sensores/leitura
 Content-Type: application/json
 Authorization: Bearer {{loginPlaca.response.body.accessToken}}
 
 {
-  "chama": true,
-  "valor": 950
+  "estado": "gas",
+  "leitura": 950
 }
 
-### Usuário tentando postar leitura → deve dar 403
+### Estado inválido → 400
+POST {{baseUrl}}/sensores/leitura
+Content-Type: application/json
+Authorization: Bearer {{loginPlaca.response.body.accessToken}}
+
+{
+  "estado": "qualquer",
+  "leitura": 10
+}
+
+### Usuário tentando postar leitura → 403
 POST {{baseUrl}}/sensores/leitura
 Content-Type: application/json
 Authorization: Bearer COLE_UM_ID_TOKEN_DE_USUARIO
 
-{
-  "chama": true
-}
+{ "estado": "chama", "leitura": 900 }
+
+### Rate limit — dispare 12x seguidas, as últimas devem dar 429
+POST {{baseUrl}}/auth/dispositivo
+Content-Type: application/json
+
+{ "placaId": "qualquer", "secret": "qualquer" }
+
+### Placa revogada tentando postar leitura → 403
+# (revogue antes com PATCH /placas/{id}, depois use um token dela)
+POST {{baseUrl}}/sensores/leitura
+Content-Type: application/json
+Authorization: Bearer {{loginPlaca.response.body.accessToken}}
+
+{ "estado": "gas", "leitura": 900 }

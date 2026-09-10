@@ -8,8 +8,8 @@ const router = express.Router();
 
  router.get('/', autenticar, async (req, res) => {
     try {
-        const leituraSensor = await db.collection('sensores').get();
-        const listaSensor = leituraSensor.docs.map(doc => ({
+        const sensores = await db.collection('sensores').get();
+        const listaSensor = sensores.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
         }));
@@ -39,6 +39,57 @@ router.patch('/:id', autenticar, async (req, res) => {
         handleError(res, error);
     }
 });
+
+router.post('/leitura', autenticar, async (req, res) => {
+    try {
+        if(!req.placa || req.usuario){
+            return res.status(403).json({erro: "A rota precisa ser acessada por uma placa"});
+        }
+        const placaId = req.placa.placaId;
+        const snapshot = await db.collection('placas').doc(placaId).get();
+
+        if(!snapshot.exists){
+            return res.status(404).json({erro: "A placa não existe"});
+        }
+
+        const { estado, leitura } = req.body || {};
+
+        const placa = snapshot.data();
+
+        if(placa.status !== "ativa"){
+            return res.status(403).json({erro: "A placa não está ativa"});
+        }
+
+        const ultimoEstado = placa.ultimoEstado ?? "seguro";
+        
+        if(estado !== "chama" && estado !== "gas" && estado !== "seguro"){
+            return res.status(400).json({erro: "Campo inválido"});
+        }
+        const intervalo = 3 * 60 * 1000;
+       
+
+        const gravar = estado !== ultimoEstado || (Date.now() - (placa.ultimoBeat ?? 0)) > intervalo
+
+        if (gravar){
+            await db.collection('leituras').add({
+                placaId: placaId,
+                estado: estado,
+                valor: leitura,
+                serverTs: Date.now()
+            });
+            await snapshot.ref.update({
+                ultimoEstado: estado,
+                ultimoBeat: Date.now()
+            });
+        }
+
+        return res.status(200).json({ok: true});
+            
+            
+    } catch (error) {
+        handleError(res, error);
+    }
+})
 
 
 module.exports = router;
