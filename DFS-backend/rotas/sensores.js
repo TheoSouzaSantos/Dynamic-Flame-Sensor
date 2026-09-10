@@ -1,10 +1,12 @@
 const express = require('express');
 const autenticar = require('../middleware/autenticar')
 const { db, admin } = require('../config/db');
-
+const handleError = require('../utils/handleError');
 const router = express.Router();
 
-/* router.get('/', autenticar, async (req, res) => {
+
+
+ router.get('/', autenticar, async (req, res) => {
     try {
         const leituraSensor = await db.collection('sensores').get();
         const listaSensor = leituraSensor.docs.map(doc => ({
@@ -15,7 +17,7 @@ const router = express.Router();
     } catch (error) {
         handleError(res, error);
     }
-}); */
+}); 
 
 router.post('/', autenticar, async (req, res) => {
     try {

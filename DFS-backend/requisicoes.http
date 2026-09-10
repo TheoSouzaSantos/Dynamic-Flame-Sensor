@@ -1,0 +1,40 @@
+@baseUrl = http://localhost:3000
+
+### Re-login da placa — captura um token de device
+# @name loginPlaca
+POST {{baseUrl}}/auth/dispositivo
+Content-Type: application/json
+
+{
+  "placaId": "COLE_O_PLACA_ID",
+  "secret": "COLE_O_DEVICE_SECRET_CRU"
+}
+
+### Leitura SEM chama (1ª vez → grava; repetida → não grava)
+POST {{baseUrl}}/sensores/leitura
+Content-Type: application/json
+Authorization: Bearer {{loginPlaca.response.body.accessToken}}
+
+{
+  "chama": false,
+  "valor": 120
+}
+
+### Leitura COM chama (virada de estado → deve gravar em "leituras")
+POST {{baseUrl}}/sensores/leitura
+Content-Type: application/json
+Authorization: Bearer {{loginPlaca.response.body.accessToken}}
+
+{
+  "chama": true,
+  "valor": 950
+}
+
+### Usuário tentando postar leitura → deve dar 403
+POST {{baseUrl}}/sensores/leitura
+Content-Type: application/json
+Authorization: Bearer COLE_UM_ID_TOKEN_DE_USUARIO
+
+{
+  "chama": true
+}
