@@ -12,7 +12,7 @@ router.get('/', autenticar, async (req, res) => {
         const listaPlacas = placas.docs.map(doc => {
             const d = doc.data();
             return ({
-                id: d.id,
+                id: doc.id,
                 status: d.status,
                 ultimoEstado: d.ultimoEstado,
                 ultimoBeat: d.ultimoBeat
@@ -73,5 +73,39 @@ router.patch('/:id', autenticar, async (req, res) => {
     }
 });
 
+router.get('/:id/leituras', autenticar, async (req, res) => {
+     try {
+        const idPlaca = req.params.id;
+        const idUser = req.usuario.uid;
+
+        const snapshot = await db.collection('placas').doc(idPlaca).get();
+        if(!snapshot.exists){
+            return res.status(404).json({erro: "A placa não existe"});
+        }
+
+        if(snapshot.data().userId != idUser){
+            return res.status(403).json({erro: "Usuário inválido"});
+        }
+
+        const leituras = await db.collection('leituras')
+                                        .where('placaId', '==', idPlaca)
+                                        .orderBy('serverTs', 'desc')
+                                        .limit(50).get();
+
+        const listaLeituras = leituras.docs.map(doc => {
+            const d = doc.data();
+            return({
+                estado: d.estado,
+                valor: d.valor,
+                serverTs: d.serverTs
+            })
+        });
+
+
+        return res.status(200).json(listaLeituras);
+    } catch (error) {
+        handleError(res, error);
+    }
+})
 
 module.exports = router;

@@ -1,4 +1,13 @@
 {
-  "indexes": [],
+  "indexes": [
+    {
+      "collectionGroup": "leituras",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "placaId", "order": "ASCENDING" },
+        { "fieldPath": "serverTs", "order": "DESCENDING" }
+      ]
+    }
+  ],
   "fieldOverrides": []
 }
