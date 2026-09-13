@@ -4,7 +4,7 @@
 GET {{baseUrl}}/health
 
 ### ============ USUÁRIO ============
-@firebaseApiKey = AIzaSyDDB4wns3Irkrsm1xwft8AX1iYecAWjFBk
+@firebaseApiKey = API_KEY_FIREBASE
 
 ### Login (pega o idToken igual o app faz por trás dos panos)
 # @name loginFirebase
@@ -12,8 +12,8 @@ POST https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={
 Content-Type: application/json
 
 {
-  "email": "ssztheo@gmail.com",
-  "password": "senha123",
+  "email": "EMAIL_USUARIO",
+  "password": "SENHA_USUARIO",
   "returnSecureToken": true
 }
 
@@ -24,7 +24,7 @@ Content-Type: application/json
 POST {{baseUrl}}/placas
 Content-Type: application/json
 Authorization: Bearer {{loginFirebase.response.body.idToken}}
-X-Debug: {{loginFirebase.response.body.idToken}}
+
 
 {}
 
@@ -36,7 +36,7 @@ Content-Type: application/json
 {
   "pairCode": "{{criarPlaca.response.body.pairCode}}",
   "chipId": "chip-teste-123",
-  "secretHash": "COLE_O_SHA256_DO_DEVICE_SECRET"
+  "secretHash": "CRIE_UM_SHA256_PARA_O_DEVICE_SECRET"
 }
 
 ### Re-login da placa (device já provisionado)
@@ -46,7 +46,7 @@ Content-Type: application/json
 
 {
   "placaId": "{{provisionarPlaca.response.body.placaId}}",
-  "secret": "COLE_O_DEVICE_SECRET_CRU"
+  "secret": "DEVICE_SECRET_CRU"
 }
 
 ### Listar minhas placas
@@ -60,7 +60,7 @@ Authorization: Bearer {{loginFirebase.response.body.idToken}}
 
 {
   "capacidadeChama": 2,
-  "capacidadeGas": 1
+  "capacidadeGas": 2
 }
 
 ### Reduzir capacidade abaixo do que já está em uso → 409
@@ -94,9 +94,9 @@ Content-Type: application/json
 Authorization: Bearer {{loginFirebase.response.body.idToken}}
 
 {
-  "nome": "Sensor Cozinha",
-  "comodo": "Cozinha",
-  "tipoChama": true
+  "nome": "Sensor Quarto",
+  "comodo": "Quarto",
+  "tipoGas": true
 }
 
 ### Criar sensor sem nome/tipo → 400
@@ -151,7 +151,7 @@ Content-Type: application/json
 Authorization: Bearer {{loginPlaca.response.body.accessToken}}
 
 {
-  "tipo": "chama",
+  "tipo": "gas",
   "indice": 1,
   "estado": "seguro",
   "leitura": 90
@@ -163,7 +163,7 @@ Content-Type: application/json
 Authorization: Bearer {{loginPlaca.response.body.accessToken}}
 
 {
-  "tipo": "chama",
+  "tipo": "gas",
   "indice": 1,
   "estado": "seguro",
   "leitura": 92
@@ -175,9 +175,9 @@ Content-Type: application/json
 Authorization: Bearer {{loginPlaca.response.body.accessToken}}
 
 {
-  "tipo": "chama",
+  "tipo": "gas",
   "indice": 1,
-  "estado": "chama",
+  "estado": "gas",
   "leitura": 950
 }
 

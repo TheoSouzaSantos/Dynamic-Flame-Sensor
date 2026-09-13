@@ -1,4 +1,4 @@
-const {db, admin} = require('../config/db');
+const {auth} = require('../config/db');
 const jwt = require('jsonwebtoken');
 const secret = process.env.API_SECRET;
 
@@ -29,7 +29,7 @@ async function autenticar(req, res, next) {
             req.placa = deco_token;
             
         }catch{
-            const deco_token = await admin.auth().verifyIdToken(token);
+            const deco_token = await auth.verifyIdToken(token);
             req.usuario = deco_token;
         }
         
@@ -37,7 +37,7 @@ async function autenticar(req, res, next) {
         
         
        
-    }catch{
+    }catch(error){
         return res.status(401).json({
             erro: "Token inválido ou expirado"
         })
