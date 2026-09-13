@@ -1,17 +1,19 @@
 const express = require('express');
-const {db} = require('../config/db');
+const {db, auth} = require('../config/db');
 const {verifySecret, hashSecret} = require('../utils/cryptoHash');
 const handleError = require('../utils/handleError');
 const tokenPlaca = require('../utils/signToken');
+const validarId = require('../utils/validarId');
+const autenticar = require('../middleware/autenticar');
 
 const router = express.Router();
 
 router.post('/dispositivo', async (req, res) =>{
     try {
         const {placaId, secret} = req.body || {};
-        if(!secret || !placaId){
+        if(!secret || !placaId || !validarId(placaId)){
             return res.status(400).json({erro: "Campos faltando"});
-            
+
         }
 
         const snapshot = await db.collection('placas').doc(placaId).get();
@@ -78,5 +80,39 @@ router.post('/provisionar', async (req, res) => {
         handleError(res, error);
     }
 })
+
+router.delete('/conta', autenticar, async (req, res) => {
+    try {
+        if(!req.usuario){
+            return res.status(403).json({erro: "A requisição deve ser feita por um usuário"});
+        }
+        const uid = req.usuario.uid;
+
+        const placas = await db.collection('placas').where('userId', '==', uid).get();
+        for (const placa of placas.docs) {
+            const leituras = await db.collection('leituras').where('placaId', '==', placa.id).get();
+            const batch = db.batch();
+            leituras.docs.forEach(leitura => batch.delete(leitura.ref));
+            batch.delete(placa.ref);
+            await batch.commit();
+        }
+
+        const sensores = await db.collection('sensores').where('userId', '==', uid).get();
+        for (const sensor of sensores.docs) {
+            const leituras = await db.collection('leituras').where('sensorId', '==', sensor.id).get();
+            const batch = db.batch();
+            leituras.docs.forEach(leitura => batch.delete(leitura.ref));
+            batch.delete(sensor.ref);
+            await batch.commit();
+        }
+
+        await db.collection('usuarios').doc(uid).delete();
+        await auth.deleteUser(uid);
+
+        return res.status(200).json({ok: true});
+    } catch (error) {
+        handleError(res, error);
+    }
+});
 
 module.exports = router;

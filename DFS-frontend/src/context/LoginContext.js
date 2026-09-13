@@ -3,8 +3,9 @@ import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
 
 import { auth, db } from '../../services/firebaseConfig';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithCredential, GoogleAuthProvider, updateEmail, deleteUser, onAuthStateChanged, signOut } from 'firebase/auth';
-import { doc, setDoc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithCredential, GoogleAuthProvider, updateEmail, onAuthStateChanged, signOut } from 'firebase/auth';
+import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
+import api from '../../services/api';
 
 // Fecha a aba do navegador aberta pelo fluxo do Google e devolve o controle pro
 // app assim que o Google redireciona de volta.
@@ -185,14 +186,14 @@ export function LoginProvider({children}) {
         }
     }
 
+    // Apaga placas, sensores e leituras do usuário no backend (via Admin SDK,
+    // já que as regras do Firestore bloqueiam essas coleções pro cliente) antes
+    // de remover a conta do Authentication.
     async function Deletar() {
         try {
             if (!user) return false;
 
-            const referenciadoc = doc(db, "usuarios", user.id);
-            await deleteDoc(referenciadoc);
-
-            await deleteUser(auth.currentUser);
+            await api.delete('/auth/conta');
 
             sair();
             return true;

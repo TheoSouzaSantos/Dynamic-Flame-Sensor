@@ -4,8 +4,11 @@ const { db } = require('../config/db');
 const handleError = require('../utils/handleError');
 const {nanoid} = require('nanoid');
 const {hashSecret} = require('../utils/cryptoHash');
+const validarId = require('../utils/validarId');
 const { Filter } = require('firebase-admin/firestore');
 const router = express.Router();
+
+const CAPACIDADE_MAXIMA = 1000;
 
 router.get('/', autenticar, async (req, res) => {
     try {
@@ -60,13 +63,16 @@ router.post('/', autenticar, async (req, res) => {
 router.patch('/:id', autenticar, async (req, res) => {
     try {
         const idPlaca = req.params.id;
+        if(!validarId(idPlaca)){
+            return res.status(400).json({erro: "ID inválido"});
+        }
         const idUser = req.usuario.uid;
         const snapshot = await db.collection('placas').doc(idPlaca).get();
          if(!snapshot.exists){
                 return res.status(404).json({erro: "A placa não existe"});
             }
 
-            if(snapshot.data().userId != idUser){
+            if(snapshot.data().userId !== idUser){
                 return res.status(403).json({erro: "Usuário inválido"});
             }
         if(req.body.status === "revogada"){
@@ -92,15 +98,15 @@ router.patch('/:id', autenticar, async (req, res) => {
             const capacidadeGas = req.body.capacidadeGas;
             const dadosAtualizados = {};
             
-            if(Number.isFinite(capacidadeChama) && capacidadeChama >= 0){
+            if(Number.isFinite(capacidadeChama) && capacidadeChama >= 0 && capacidadeChama <= CAPACIDADE_MAXIMA){
                 const qtdChama = (await db.collection('sensores').where("placaIdChama", "==", idPlaca).get()).size;
-                
+
                 if(capacidadeChama < qtdChama ){
                     return res.status(409).json({ erro : `Já existem ${qtdChama} sensores`});
                 }
                 dadosAtualizados.capacidadeChama = capacidadeChama;
             }
-            if((Number.isFinite(capacidadeGas) && capacidadeGas >= 0)){
+            if((Number.isFinite(capacidadeGas) && capacidadeGas >= 0 && capacidadeGas <= CAPACIDADE_MAXIMA)){
                 const qtdGas = (await db.collection('sensores').where("placaIdGas", "==", idPlaca).get()).size;
 
                 if(capacidadeGas < qtdGas ){
@@ -126,6 +132,9 @@ router.patch('/:id', autenticar, async (req, res) => {
 router.get('/:id/leituras', autenticar, async (req, res) => {
      try {
         const idPlaca = req.params.id;
+        if(!validarId(idPlaca)){
+            return res.status(400).json({erro: "ID inválido"});
+        }
         const idUser = req.usuario.uid;
 
         const snapshot = await db.collection('placas').doc(idPlaca).get();
@@ -133,7 +142,7 @@ router.get('/:id/leituras', autenticar, async (req, res) => {
             return res.status(404).json({erro: "A placa não existe"});
         }
 
-        if(snapshot.data().userId != idUser){
+        if(snapshot.data().userId !== idUser){
             return res.status(403).json({erro: "Usuário inválido"});
         }
 
@@ -157,5 +166,43 @@ router.get('/:id/leituras', autenticar, async (req, res) => {
         handleError(res, error);
     }
 })
+
+router.post('/:id/repair', autenticar, async (req, res) => {
+    try {
+        const idPlaca = req.params.id;
+        if(!validarId(idPlaca)){
+            return res.status(400).json({erro: "ID inválido"});
+        }
+        const idUser = req.usuario.uid;
+
+        const snapshot = await db.collection('placas').doc(idPlaca).get();
+        if(!snapshot.exists){
+            return res.status(404).json({erro: "A placa não existe"});
+        }
+
+        if(snapshot.data().userId !== idUser){
+            return res.status(403).json({erro: "Usuário inválido"});
+        }
+
+        if(snapshot.data().status !== "revogada"){
+            return res.status(409).json({erro: "A placa não está revogada"});
+        }
+
+        const codigoPlaca = nanoid(8);
+        const tempoExpiracao = Date.now() + 10 * 60 * 1000;
+
+        await snapshot.ref.update({
+            status: "aguardando",
+            pairCodeHash: hashSecret(codigoPlaca),
+            expiraEm: tempoExpiracao,
+            chipId: null,
+            secretHash: null
+        });
+
+        return res.status(200).json({placaId: idPlaca, pairCode: codigoPlaca});
+    } catch (error) {
+        handleError(res, error);
+    }
+});
 
 module.exports = router;

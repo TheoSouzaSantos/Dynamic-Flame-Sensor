@@ -2,6 +2,8 @@ const express = require('express');
 const autenticar = require('../middleware/autenticar')
 const { db } = require('../config/db');
 const handleError = require('../utils/handleError');
+const validarId = require('../utils/validarId');
+const sanitizarTexto = require('../utils/sanitizarTexto');
 const router = express.Router();
 
 
@@ -43,7 +45,9 @@ router.post('/', autenticar, async (req, res) => {
         
         const userId = req.usuario.uid;
         const sensor = req.body;
-        if(!sensor.nome || sensor.nome == "" || (sensor.tipoChama != true && sensor.tipoGas != true)){
+        const nome = sanitizarTexto(sensor.nome);
+        const comodo = sanitizarTexto(sensor.comodo);
+        if(!nome || (sensor.tipoChama != true && sensor.tipoGas != true)){
             return res.status(400).json({erro: "Campos faltando"});
         }
 
@@ -143,8 +147,8 @@ router.post('/', autenticar, async (req, res) => {
             
             const sensorDoc = {
                 userId: userId,
-                nome: sensor.nome,
-                comodo: sensor.comodo,
+                nome: nome,
+                comodo: comodo,
                 tipoChama: sensor.tipoChama ? true : null,
                 tipoGas: sensor.tipoGas ? true : null,
                 placaIdChama: sensor.tipoChama ? placaIdChama : null,
@@ -181,13 +185,17 @@ router.patch('/:id', autenticar, async(req, res) => {
         return res.status(403).json({erro: "A requisição deve ser feita por um usuário"});
         }
 
+        if(!validarId(req.params.id)){
+            return res.status(400).json({erro: "ID inválido"});
+        }
+
         const userId = req.usuario.uid;
         const snapshot = await db.collection('sensores').doc(req.params.id).get();
-        
+
         if(!snapshot.exists){
             return res.status(404).json({erro: "O sensor não existe"});
         }
-        if(snapshot.data().userId != userId){
+        if(snapshot.data().userId !== userId){
             return res.status(403).json({erro: "Usuário inválido"});
 
         }
@@ -195,11 +203,11 @@ router.patch('/:id', autenticar, async(req, res) => {
         const sensorBody = req.body;
         const dadosAtualizados = {};
 
-        if(sensorBody.nome != "" && sensorBody.nome != undefined ){
-            dadosAtualizados.nome = sensorBody.nome;
+        if(typeof sensorBody.nome === "string" && sensorBody.nome.trim() != ""){
+            dadosAtualizados.nome = sanitizarTexto(sensorBody.nome);
         }
-        if(sensorBody.comodo != "" && sensorBody.comodo != undefined){
-            dadosAtualizados.comodo = sensorBody.comodo;
+        if(typeof sensorBody.comodo === "string" && sensorBody.comodo.trim() != ""){
+            dadosAtualizados.comodo = sanitizarTexto(sensorBody.comodo);
         }
         if(typeof sensorBody.ativo == "boolean"){
             dadosAtualizados.ativo = sensorBody.ativo;
@@ -222,6 +230,9 @@ router.patch('/:id', autenticar, async(req, res) => {
 router.get('/:id/leituras', autenticar, async (req, res) => {
      try {
         const idSensor = req.params.id;
+        if(!validarId(idSensor)){
+            return res.status(400).json({erro: "ID inválido"});
+        }
         const idUser = req.usuario.uid;
 
         const snapshot = await db.collection('sensores').doc(idSensor).get();
@@ -229,7 +240,7 @@ router.get('/:id/leituras', autenticar, async (req, res) => {
             return res.status(404).json({erro: "O sensor não existe"});
         }
 
-        if(snapshot.data().userId != idUser){
+        if(snapshot.data().userId !== idUser){
             return res.status(403).json({erro: "Usuário inválido"});
         }
 
@@ -262,10 +273,10 @@ router.post('/leituras', autenticar, async (req, res) => {
         const placaId = req.placa.placaId;
         const {estado, leitura, ...body} = req.body;
         
-        if((body.tipo !== "chama" && body.tipo !== "gas") || 
-            (estado !== "chama" && estado !== "gas" && estado !== "seguro") || 
+        if((body.tipo !== "chama" && body.tipo !== "gas") ||
+            (estado !== "chama" && estado !== "gas" && estado !== "seguro") ||
             !(typeof leitura === 'number' && Number.isFinite(leitura)) ||
-            !Number.isInteger(body.indice)){
+            !Number.isInteger(body.indice) || body.indice < 1){
             return res.status(400).json({erro: "Campo inválido"});
         }
 

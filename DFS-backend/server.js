@@ -16,9 +16,9 @@ const limitSensor = rateLimit({windowMs: 60 * 1000, limit: 30, message: 'Limite 
 
 app.set('trust proxy', 1);
 
-app.get('/health', (req, res) => res.status(200).json({ status: 'ok' }));
-app.use(express.json({ limit: '10kb' }));
 app.use(helmet());
+app.use(express.json({ limit: '10kb' }));
+app.get('/health', (req, res) => res.status(200).json({ status: 'ok' }));
 const PORT = process.env.PORT;
 
 
