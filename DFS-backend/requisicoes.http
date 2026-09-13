@@ -1,66 +1,234 @@
-@baseUrl = http://localhost:3000
+@baseUrl = https://dynamic-flame-sensor.onrender.com
 
-### Re-login da placa — captura um token de device
+### ============ SAÚDE ============
+GET {{baseUrl}}/health
+
+### ============ USUÁRIO ============
+@firebaseApiKey = AIzaSyDDB4wns3Irkrsm1xwft8AX1iYecAWjFBk
+
+### Login (pega o idToken igual o app faz por trás dos panos)
+# @name loginFirebase
+POST https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={{firebaseApiKey}}
+Content-Type: application/json
+
+{
+  "email": "ssztheo@gmail.com",
+  "password": "senha123",
+  "returnSecureToken": true
+}
+
+### ============ PLACAS / PROVISIONAMENTO ============
+
+### Criar placa (gera pairCode)
+# @name criarPlaca
+POST {{baseUrl}}/placas
+Content-Type: application/json
+Authorization: Bearer {{loginFirebase.response.body.idToken}}
+X-Debug: {{loginFirebase.response.body.idToken}}
+
+{}
+
+### Provisionar a placa (fluxo do ESP32) — usa o pairCode da resposta acima
+# @name provisionarPlaca
+POST {{baseUrl}}/auth/provisionar
+Content-Type: application/json
+
+{
+  "pairCode": "{{criarPlaca.response.body.pairCode}}",
+  "chipId": "chip-teste-123",
+  "secretHash": "COLE_O_SHA256_DO_DEVICE_SECRET"
+}
+
+### Re-login da placa (device já provisionado)
 # @name loginPlaca
 POST {{baseUrl}}/auth/dispositivo
 Content-Type: application/json
 
 {
-  "placaId": "COLE_O_PLACA_ID",
+  "placaId": "{{provisionarPlaca.response.body.placaId}}",
   "secret": "COLE_O_DEVICE_SECRET_CRU"
 }
 
-### Leitura em repouso (rode 2x — a 2ª não deve gravar)
-POST {{baseUrl}}/sensores/leitura
+### Listar minhas placas
+GET {{baseUrl}}/placas
+Authorization: Bearer {{loginFirebase.response.body.idToken}}
+
+### Atualizar capacidade da placa
+PATCH {{baseUrl}}/placas/{{criarPlaca.response.body.placaId}}
+Content-Type: application/json
+Authorization: Bearer {{loginFirebase.response.body.idToken}}
+
+{
+  "capacidadeChama": 2,
+  "capacidadeGas": 1
+}
+
+### Reduzir capacidade abaixo do que já está em uso → 409
+PATCH {{baseUrl}}/placas/{{criarPlaca.response.body.placaId}}
+Content-Type: application/json
+Authorization: Bearer {{loginFirebase.response.body.idToken}}
+
+{
+  "capacidadeChama": 0
+}
+
+### Revogar a placa
+PATCH {{baseUrl}}/placas/{{criarPlaca.response.body.placaId}}
+Content-Type: application/json
+Authorization: Bearer {{loginFirebase.response.body.idToken}}
+
+{
+  "status": "revogada"
+}
+
+### Leituras da placa (histórico bruto por placa)
+GET {{baseUrl}}/placas/{{criarPlaca.response.body.placaId}}/leituras
+Authorization: Bearer {{loginFirebase.response.body.idToken}}
+
+### ============ SENSORES (CRUD, usuário) ============
+
+### Criar sensor de chama — sucesso esperado
+# @name criarSensorChama
+POST {{baseUrl}}/sensores
+Content-Type: application/json
+Authorization: Bearer {{loginFirebase.response.body.idToken}}
+
+{
+  "nome": "Sensor Cozinha",
+  "comodo": "Cozinha",
+  "tipoChama": true
+}
+
+### Criar sensor sem nome/tipo → 400
+POST {{baseUrl}}/sensores
+Content-Type: application/json
+Authorization: Bearer {{loginFirebase.response.body.idToken}}
+
+{
+  "comodo": "Sala"
+}
+
+### Criar sensor sem saldo disponível → 409
+POST {{baseUrl}}/sensores
+Content-Type: application/json
+Authorization: Bearer {{loginFirebase.response.body.idToken}}
+
+{
+  "nome": "Sensor Extra",
+  "tipoGas": true
+}
+
+### Listar meus sensores
+GET {{baseUrl}}/sensores
+Authorization: Bearer {{loginFirebase.response.body.idToken}}
+
+### Atualizar nome/comodo/ativo de um sensor
+PATCH {{baseUrl}}/sensores/{{criarSensorChama.response.body.idSensor}}
+Content-Type: application/json
+Authorization: Bearer {{loginFirebase.response.body.idToken}}
+
+{
+  "nome": "Sensor Cozinha Atualizado",
+  "ativo": true
+}
+
+### PATCH sem nenhum campo válido → 400
+PATCH {{baseUrl}}/sensores/{{criarSensorChama.response.body.idSensor}}
+Content-Type: application/json
+Authorization: Bearer {{loginFirebase.response.body.idToken}}
+
+{}
+
+### Leituras de um sensor específico
+GET {{baseUrl}}/sensores/{{criarSensorChama.response.body.idSensor}}/leituras
+Authorization: Bearer {{loginFirebase.response.body.idToken}}
+
+### ============ TELEMETRIA (placa → /sensores/leituras) ============
+
+### Leitura de chama, canal 1 — deve gravar (1ª leitura desse sensor)
+POST {{baseUrl}}/sensores/leituras
 Content-Type: application/json
 Authorization: Bearer {{loginPlaca.response.body.accessToken}}
 
 {
-  "estado": "normal",
+  "tipo": "chama",
+  "indice": 1,
+  "estado": "seguro",
   "leitura": 90
 }
 
-### Virada pra gás — deve gravar (estado mudou)
-POST {{baseUrl}}/sensores/leitura
+### Mesma leitura logo em seguida — não deve gravar (mesmo estado, dentro do intervalo)
+POST {{baseUrl}}/sensores/leituras
 Content-Type: application/json
 Authorization: Bearer {{loginPlaca.response.body.accessToken}}
 
 {
-  "estado": "gas",
+  "tipo": "chama",
+  "indice": 1,
+  "estado": "seguro",
+  "leitura": 92
+}
+
+### Virada pra chama detectada — deve gravar (mudou de estado)
+POST {{baseUrl}}/sensores/leituras
+Content-Type: application/json
+Authorization: Bearer {{loginPlaca.response.body.accessToken}}
+
+{
+  "tipo": "chama",
+  "indice": 1,
+  "estado": "chama",
   "leitura": 950
 }
 
-### Estado inválido → 400
-POST {{baseUrl}}/sensores/leitura
+### Canal sem sensor cadastrado ainda — resposta tolerante, sem gravar
+POST {{baseUrl}}/sensores/leituras
 Content-Type: application/json
 Authorization: Bearer {{loginPlaca.response.body.accessToken}}
 
 {
-  "estado": "qualquer",
+  "tipo": "gas",
+  "indice": 9,
+  "estado": "seguro",
   "leitura": 10
 }
 
-### Usuário tentando postar leitura → 403
-POST {{baseUrl}}/sensores/leitura
+### Índice fracionário → 400
+POST {{baseUrl}}/sensores/leituras
 Content-Type: application/json
-Authorization: Bearer COLE_UM_ID_TOKEN_DE_USUARIO
+Authorization: Bearer {{loginPlaca.response.body.accessToken}}
 
-{ "estado": "chama", "leitura": 900 }
+{
+  "tipo": "chama",
+  "indice": 1.5,
+  "estado": "seguro",
+  "leitura": 90
+}
 
-### Rate limit — dispare 12x seguidas, as últimas devem dar 429
+### Usuário tentando postar leitura (rota é só de placa) → 403
+POST {{baseUrl}}/sensores/leituras
+Content-Type: application/json
+Authorization: Bearer {{loginFirebase.response.body.idToken}}
+
+{ "tipo": "chama", "indice": 1, "estado": "seguro", "leitura": 90 }
+
+### Placa revogada tentando postar leitura → 403
+# (rode depois do PATCH de revogação lá em cima)
+POST {{baseUrl}}/sensores/leituras
+Content-Type: application/json
+Authorization: Bearer {{loginPlaca.response.body.accessToken}}
+
+{ "tipo": "chama", "indice": 1, "estado": "seguro", "leitura": 90 }
+
+### Rate limit em /sensores — dispare ~31x seguidas, as últimas devem dar 429
+POST {{baseUrl}}/sensores/leituras
+Content-Type: application/json
+Authorization: Bearer {{loginPlaca.response.body.accessToken}}
+
+{ "tipo": "chama", "indice": 1, "estado": "seguro", "leitura": 90 }
+
+### Rate limit em /auth — dispare ~21x seguidas
 POST {{baseUrl}}/auth/dispositivo
 Content-Type: application/json
 
 { "placaId": "qualquer", "secret": "qualquer" }
-
-### Placa revogada tentando postar leitura → 403
-# (revogue antes com PATCH /placas/{id}, depois use um token dela)
-POST {{baseUrl}}/sensores/leitura
-Content-Type: application/json
-Authorization: Bearer {{loginPlaca.response.body.accessToken}}
-
-{ "estado": "gas", "leitura": 900 }
-
-### Listar minhas placas
-GET {{baseUrl}}/placas
-Authorization: Bearer pTykVb7ykiZafTbn8cCwepACOyw1

@@ -66,7 +66,6 @@ router.post('/provisionar', async (req, res) => {
             chipId: chipId,
             secretHash: secretHash,
             status: 'ativa',
-            ultimoEstado: 'seguro',
             ultimoBeat: 0
         });
 

@@ -5,6 +5,7 @@
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "placaId", "order": "ASCENDING" },
+        { "fieldPath": "sensorId", "order": "ASCENDING" },
         { "fieldPath": "serverTs", "order": "DESCENDING" }
       ]
     }
