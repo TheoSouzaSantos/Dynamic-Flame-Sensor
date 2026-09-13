@@ -1,67 +1,74 @@
-import React, {useState} from 'react';
-import {View, Text, TextInput, TouchableOpacity, Alert} from 'react-native';
-import {useLogin} from '../context/LoginContext'
-import Styles from '../css/styles';
-
-
+import React, { useState } from 'react';
+import { Alert, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { useLogin } from '../context/LoginContext';
+import { useTheme } from '../css/theme';
+import makeStyles from '../css/styles';
+import Screen from './Screen';
 
-export default function EditaUser () {
+export default function EditarPage() {
+  const { Editar, user } = useLogin();
+  const { colors } = useTheme();
+  const s = makeStyles(colors);
+  const nav = useNavigation();
 
-    const {Editar, user} = useLogin();
+  const [nome, setNome] = useState(user.nome);
+  const [email, setEmail] = useState(user.email);
+  const [salvando, setSalvando] = useState(false);
 
-    const [nome, setNome] = useState(user.nome)
-    const [email, setEmail] = useState(user.email);
+  async function EditarUsuario() {
+    if (nome.trim() === '' || email.trim() === '') return;
 
-    const nav = useNavigation();
+    setSalvando(true);
+    const success = await Editar({ nome, email });
+    setSalvando(false);
 
-    async function EditarUsuario () {
-        if(nome.trim() === '' || email.trim() === '') return
-
-        
-        const success = await Editar({
-            "nome": nome, 
-            "email": email, 
-        });
-
-        if(success){
-                Alert.alert("Sucesso!", "Usuário atualizado!");
-        }
-        else{
-            Alert.alert("Erro!", "Não foi possível se conectar ao servidor");
-        }
-
-        nav.goBack()
-        
+    if (success) {
+      Alert.alert('Sucesso!', 'Usuário atualizado!');
+      nav.goBack();
+    } else {
+      Alert.alert('Erro!', 'Não foi possível se conectar ao servidor');
     }
+  }
 
-    return (
-        <View style={Styles.overlay}>
-            <View style={Styles.container}>
-                <View style={Styles.modal}>
-                    <Text style={Styles.title}>Editar</Text>
+  return (
+    <Screen style={s.screen}>
+      <View style={[s.row, { gap: 14, paddingHorizontal: 20, paddingTop: 10 }]}>
+        <TouchableOpacity style={s.iconBtn} onPress={() => nav.goBack()}>
+          <Ionicons name="close" size={18} color={colors.textPrimary} />
+        </TouchableOpacity>
+        <Text style={s.kicker}>EDITAR PERFIL</Text>
+      </View>
 
-                    <Text style={Styles.texto}>Nome: </Text>
-                    <TextInput 
-                        onChangeText={setNome} 
-                        value={nome}
-                        style={Styles.input}/>
+      <View style={{ paddingHorizontal: 20, paddingTop: 22 }}>
+        <Text style={s.title}>Seus dados</Text>
+      </View>
 
-                    <Text style={Styles.texto}>Email: </Text>
-                    <TextInput 
-                        onChangeText={setEmail} 
-                        value={email}
-                        style={Styles.input}/>
-
-                    
-                    
-                    <TouchableOpacity onPress={EditarUsuario}>
-                        <Text style={Styles.touchableOpacity}>Entrar</Text>
-                    </TouchableOpacity>
-
-                    
-                </View>
-            </View>
+      <View style={{ paddingHorizontal: 20, paddingTop: 24, gap: 10 }}>
+        <View style={s.inputGroup}>
+          <Text style={s.label}>NOME</Text>
+          <View style={s.inputRow}>
+            <TextInput style={s.input} value={nome} onChangeText={setNome}
+              placeholder="Seu nome" placeholderTextColor={colors.textMuted} />
+          </View>
         </View>
-    );
- }
+        <View style={s.inputGroup}>
+          <Text style={s.label}>E-MAIL</Text>
+          <View style={s.inputRow}>
+            <TextInput style={s.input} value={email} onChangeText={setEmail}
+              placeholder="seu@email.com" keyboardType="email-address" autoCapitalize="none"
+              placeholderTextColor={colors.textMuted} />
+          </View>
+        </View>
+      </View>
+
+      <View style={{ marginTop: 'auto', paddingHorizontal: 20, paddingBottom: 22 }}>
+        <TouchableOpacity style={[s.btnPrimary, { opacity: salvando ? 0.6 : 1 }]}
+          disabled={salvando} onPress={EditarUsuario}>
+          <Text style={s.btnPrimaryText}>{salvando ? 'Salvando...' : 'Salvar'}</Text>
+        </TouchableOpacity>
+      </View>
+    </Screen>
+  );
+}

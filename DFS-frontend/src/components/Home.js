@@ -1,112 +1,117 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Text, ScrollView, Animated, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import Styles, { colors, space } from '../css/styles';
-import * as Notifications from 'expo-notifications';
-import { enviarNotificacao } from '../../modules/dfsmodule/src/DfsmoduleModule';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, Easing, RefreshControl, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { useTheme } from '../css/theme';
+import makeStyles from '../css/styles';
+import AlarmBanner from './AlarmBanner';
+import Screen from './Screen';
+import { usePlacas } from '../context/PlacasContext';
+import { useSensores } from '../context/SensoresContext';
+import { estadoDoSensor } from '../utils/estadoSensor';
 
-const PaginaInicial = () => {
+export default function Home() {
+  const nav = useNavigation();
+  const { colors } = useTheme();
+  const s = makeStyles(colors);
+  const { placas, carregando: carregandoPlacas, atualizar: atualizarPlacas } = usePlacas();
+  const { sensores, carregando: carregandoSensores, atualizar: atualizarSensores } = useSensores();
+  const breathe = useRef(new Animated.Value(0)).current;
+  // Guarda, por sensor, o serverTs da leitura de chama que estava ativa quando
+  // o usuário apertou "Silenciar" — a faixa volta a aparecer sozinha assim que
+  // chegar uma leitura de chama mais nova que essa (uma detecção nova de verdade),
+  // em vez de reaparecer no próximo polling mesmo sem nada ter mudado.
+  const [silenciadoAte, setSilenciadoAte] = useState({});
 
-  const fade  = useRef(new Animated.Value(0)).current;
-  const slide = useRef(new Animated.Value(20)).current;
+  function silenciarAlarme(sensor) {
+    setSilenciadoAte((m) => ({
+      ...m,
+      [sensor.id]: (sensor.ultimaLeituraChama && sensor.ultimaLeituraChama.serverTs) || Date.now(),
+    }));
+  }
 
   useEffect(() => {
-    Notifications.requestPermissionsAsync();
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(breathe, { toValue: 1, duration: 2100, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+        Animated.timing(breathe, { toValue: 0, duration: 2100, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+      ])
+    ).start();
   }, []);
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fade,  { toValue: 1, duration: 500, useNativeDriver: true }),
-      Animated.timing(slide, { toValue: 0, duration: 450, useNativeDriver: true }),
-    ]).start();
-  }, []);
+
+  const carregando = carregandoPlacas || carregandoSensores;
+  const atualizar = () => { atualizarPlacas(); atualizarSensores(); };
+
+  const scale = breathe.interpolate({ inputRange: [0, 1], outputRange: [1, 1.12] });
+  const sensoresComEstado = sensores.map((sn) => ({ ...sn, estado: estadoDoSensor(sn) }));
+  const emChama = sensoresComEstado.find((sn) => {
+    if (sn.estado !== 'chama') return false;
+    const silenciadoEm = silenciadoAte[sn.id];
+    const leituraTs = sn.ultimaLeituraChama && sn.ultimaLeituraChama.serverTs;
+    return !(silenciadoEm != null && leituraTs != null && leituraTs <= silenciadoEm);
+  });
+  const emGas = sensoresComEstado.find((sn) => sn.estado === 'gas');
+  const alerta = emChama || emGas;
+  const placasOffline = placas.filter((p) => Date.now() - p.ultimoBeat > 5 * 60 * 1000).length;
 
   return (
-    <ScrollView
-      style={Styles.scrollBody}
-      contentContainerStyle={{ paddingHorizontal: space.lg, paddingTop: space.xl, paddingBottom: space.xxl }}
-      showsVerticalScrollIndicator={false}
-    >
-      <Animated.View style={{ opacity: fade, transform: [{ translateY: slide }] }}>
-
-        {/* Tagline */}
-        <Text style={Styles.label}>Dynamic Flame Sensor</Text>
-
-        {/* Heading */}
-        <Text style={Styles.heading}>
-          Mantenha sua{'\n'}casa segura.
-        </Text>
-
-        <Text style={Styles.body}>
-          Acompanhe em tempo real o status dos seus sensores de chama e gás, por cômodo, direto do celular.
-        </Text>
-
-      </Animated.View>
-      <TouchableOpacity onPress={() => enviarNotificacao()} style={{ marginTop: space.xl, padding: 10, backgroundColor: colors.primary, borderRadius: 5 }}>
-        <View>
-          <Text>Clique aqui</Text>
+    <Screen style={s.screen} edges={['bottom']}>
+      {emChama && <AlarmBanner comodo={emChama.comodo || emChama.nome} onSilenciar={() => silenciarAlarme(emChama)} />}
+      <ScrollView refreshControl={<RefreshControl refreshing={carregando} onRefresh={atualizar} tintColor={colors.flame} />}>
+        <View style={[s.rowBetween, { paddingHorizontal: 24, paddingTop: 26 }]}>
+          <Text style={s.kicker}>MINHA CASA</Text>
+          <Text style={s.mono}>{new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</Text>
         </View>
-      </TouchableOpacity>
-      {/* Feature items */}
-      <View style={{ marginTop: space.xl, gap: 1 }}>
 
-        <FeatureItem
-          icon="flame-outline"
-          iconColor={colors.flame}
-          iconBg={colors.flameLight}
-          title="Sensor de chama"
-          desc="Detecta focos de incêndio e sinaliza no painel instantaneamente."
-          delay={80}
-        />
+        <View style={{ alignItems: 'center', paddingHorizontal: 24, paddingTop: 40, paddingBottom: 26 }}>
+          <View style={{ width: 188, height: 188, alignItems: 'center', justifyContent: 'center' }}>
+            <Animated.View style={{ position: 'absolute', width: 188, height: 188, borderRadius: 94,
+              backgroundColor: emChama ? colors.flameBg : emGas ? colors.gasBg : colors.muted, transform: [{ scale }] }} />
+            <View style={{ width: alerta ? 104 : 86, height: alerta ? 104 : 86, borderRadius: 52,
+              backgroundColor: emChama ? colors.flame : emGas ? colors.gas : colors.card,
+              borderWidth: alerta ? 0 : 1, borderColor: colors.border,
+              alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ fontSize: alerta ? 44 : 13, color: alerta ? '#fff' : colors.textSecondary }}>
+                {emChama ? '🔥' : emGas ? '⛽' : 'OK'}
+              </Text>
+            </View>
+          </View>
+          <Text style={[s.display, { marginTop: 26, textAlign: 'center',
+            color: emChama ? colors.flame : emGas ? colors.gas : colors.textPrimary }]}>
+            {emChama ? `Chama em ${emChama.comodo || emChama.nome}`
+              : emGas ? `Gás em ${emGas.comodo || emGas.nome}`
+              : 'Tudo tranquilo'}
+          </Text>
+          <Text style={[s.body14, { marginTop: 10, textAlign: 'center', maxWidth: 280 }]}>
+            {alerta
+              ? 'Detecção confirmada. Verifique o cômodo antes de qualquer ação.'
+              : sensores.length > 0
+                ? `${sensores.length} sensor${sensores.length === 1 ? '' : 'es'} ativo${sensores.length === 1 ? '' : 's'}${placasOffline ? ` · ${placasOffline} placa offline` : ''}.`
+                : 'Nenhum sensor cadastrado ainda.'}
+          </Text>
+        </View>
 
-        <FeatureItem
-          icon="cloud-outline"
-          iconColor={colors.gas}
-          iconBg={colors.gasLight}
-          title="Sensor de gás"
-          desc="Monitora vazamentos continuamente, com símbolo visual na listagem."
-          delay={160}
-        />
+        <View style={{ paddingHorizontal: 24 }}>
+          {sensoresComEstado.slice(0, 4).map((sn) => (
+            <View key={sn.id} style={s.listRow}>
+              <View style={[s.row, { gap: 12 }]}>
+                <View style={[s.dot, { backgroundColor: !sn.ativo ? colors.textMuted
+                  : sn.estado === 'chama' ? colors.flame : sn.estado === 'gas' ? colors.gas : colors.gas }]} />
+                <Text style={{ fontSize: 14, fontWeight: '500',
+                  color: !sn.ativo ? colors.textSecondary : colors.textPrimary }}>
+                  {sn.nome}{!sn.ativo ? ' · desativado' : ''}
+                </Text>
+              </View>
+              <Text style={s.mono}>{sn.comodo || '—'}</Text>
+            </View>
+          ))}
+        </View>
+      </ScrollView>
 
-        <FeatureItem
-          icon="grid-outline"
-          iconColor={colors.textPrimary}
-          iconBg={colors.bgMuted}
-          title="Por cômodo"
-          desc="Organize sensores por ambiente — sala, cozinha, quarto e mais."
-          delay={240}
-        />
-
+      <View style={{ paddingHorizontal: 24, paddingVertical: 18 }}>
+        <TouchableOpacity style={s.btnPrimary} onPress={() => nav.navigate('Painel')}>
+          <Text style={s.btnPrimaryText}>Ver todos os sensores</Text>
+        </TouchableOpacity>
       </View>
-
-    </ScrollView>
-  );
-};
-
-function FeatureItem({ icon, iconColor, iconBg, title, desc, delay }) {
-  const fade = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.timing(fade, { toValue: 1, duration: 400, delay, useNativeDriver: true }).start();
-  }, []);
-
-  return (
-    <Animated.View style={{ opacity: fade }}>
-      <View style={[Styles.infoCard, { flexDirection: 'row', alignItems: 'flex-start', gap: space.md }]}>
-        <View style={{
-          width: 38, height: 38, borderRadius: 10,
-          backgroundColor: iconBg,
-          alignItems: 'center', justifyContent: 'center',
-          flexShrink: 0,
-        }}>
-          <Ionicons name={icon} size={19} color={iconColor} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={[Styles.sensorName, { marginBottom: 3 }]}>{title}</Text>
-          <Text style={[Styles.body, { fontSize: 13 }]}>{desc}</Text>
-        </View>
-      </View>
-    </Animated.View>
+    </Screen>
   );
 }
-
-export default PaginaInicial;

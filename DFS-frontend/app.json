@@ -3,6 +3,7 @@
     "name": "DFS",
     "slug": "DFS",
     "version": "1.0.0",
+    "scheme": "dfs",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -23,7 +24,8 @@
     },
     "plugins": [
       "expo-font",
-      "expo-status-bar"
+      "expo-status-bar",
+      "expo-web-browser"
     ]
   }
 }

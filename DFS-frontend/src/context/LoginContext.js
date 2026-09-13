@@ -1,15 +1,62 @@
-import React, { useState, useContext, createContext} from 'react';
-import {Alert} from 'react-native';
+import React, { useState, useContext, createContext, useEffect } from 'react';
+import * as Google from 'expo-auth-session/providers/google';
+import * as WebBrowser from 'expo-web-browser';
 
 import { auth, db } from '../../services/firebaseConfig';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateEmail, deleteUser } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithCredential, GoogleAuthProvider, updateEmail, deleteUser, onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 
+// Fecha a aba do navegador aberta pelo fluxo do Google e devolve o controle pro
+// app assim que o Google redireciona de volta.
+WebBrowser.maybeCompleteAuthSession();
 
 const LoginContext = createContext();
 
 export function LoginProvider({children}) {
     const [user, setUser] = useState(null);
+    const [carregando, setCarregando] = useState(true);
+
+    // Precisa de EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID (e, se for gerar build nativo
+    // de verdade, também os client IDs de Android/iOS) vindos do Google Cloud
+    // Console do mesmo projeto Firebase, depois de ativar o provedor Google em
+    // Authentication > Sign-in method. Enquanto o .env não tiver nenhum desses
+    // client IDs preenchido, `request` do hook já vem "pronto" (ele monta o
+    // objeto mesmo sem clientId) — por isso checamos os client IDs também,
+    // não só o `request`, pra não deixar o botão parecendo funcional antes da
+    // hora.
+    const googleConfigurado = !!(process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID
+        || process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID
+        || process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID);
+    const [requestGoogle, , promptGoogle] = Google.useAuthRequest({
+        webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+        androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
+        iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+    });
+
+    // Restaura a sessão salva (AsyncStorage) assim que o app abre.
+    useEffect(() => {
+        const cancelar = onAuthStateChanged(auth, async (credencial) => {
+            try {
+                if (!credencial) {
+                    setUser(null);
+                    return;
+                }
+
+                const referenciadoc = doc(db, "usuarios", credencial.uid);
+                const verdoc = await getDoc(referenciadoc);
+
+                setUser({
+                    id: credencial.uid,
+                    nome: verdoc.exists() ? verdoc.data().nome : '',
+                    email: credencial.email
+                });
+            } finally {
+                setCarregando(false);
+            }
+        });
+
+        return cancelar;
+    }, []);
 
     async function Cadastro({ nome, email, senha }) {
     try {
@@ -65,22 +112,62 @@ export function LoginProvider({children}) {
                     nome: verdoc.data().nome,
                     email: credencial.user.email
                 });
-                
+
                 return true;
             }
 
             return false;
         }
         catch (error){
-            
+
            console.log("Erro no login:", error.message);
            return false;
+        }
+    }
+
+    // Usada tanto em "Entrar" quanto em "Criar conta": funciona pras duas
+    // porque, no primeiro login com uma conta Google, ainda não existe
+    // documento em `usuarios/{uid}` — aí ele é criado igual ao fluxo de
+    // Cadastro; nas próximas vezes, só carrega o documento que já existe.
+    async function LoginGoogle() {
+        try {
+            if (!googleConfigurado || !requestGoogle) return false;
+
+            const resultado = await promptGoogle();
+            if (resultado.type !== 'success') return false;
+
+            const { id_token } = resultado.params;
+            const credencialGoogle = GoogleAuthProvider.credential(id_token);
+            const credencial = await signInWithCredential(auth, credencialGoogle);
+            const usuariouid = credencial.user.uid;
+
+            const referenciadoc = doc(db, "usuarios", usuariouid);
+            const verdoc = await getDoc(referenciadoc);
+
+            const nome = verdoc.exists() ? verdoc.data().nome : (credencial.user.displayName || '');
+            const email = credencial.user.email;
+
+            if (!verdoc.exists()) {
+                await setDoc(referenciadoc, { nome, email });
+            }
+
+            setUser({ id: usuariouid, nome, email });
+            return true;
+        } catch (error) {
+            console.log("Erro no login com Google:", error.message);
+            return false;
         }
     }
 
     async function Editar(dados){
         try{
             if (!user) return false
+
+            // Atualiza o e-mail no Auth primeiro: se falhar (ex.: exige login
+            // recente), o Firestore não fica com um e-mail que o Auth não tem.
+            if(dados.email !== user.email){
+                await updateEmail(auth.currentUser, dados.email)
+            }
 
             const referenciadoc = doc(db, "usuarios", user.id);
 
@@ -89,10 +176,6 @@ export function LoginProvider({children}) {
                 nome: dados.nome
             });
 
-            if(dados.email !== user.email){
-                await updateEmail(auth.currentUser, dados.email)
-                
-            }
             setUser({ ...user, nome: dados.nome, email: dados.email });
             return true;
         }
@@ -117,16 +200,19 @@ export function LoginProvider({children}) {
             console.log("Erro ao deletar:", error.message);
             return false;
         }
-        
+
 
     }
 
     const sair = () => {
+        signOut(auth).catch(() => {});
         setUser(null);
     }
 
     return (
-        <LoginContext.Provider value={{user, Cadastro, Login, Editar, Deletar, sair}}>
+        <LoginContext.Provider value={{
+            user, carregando, Cadastro, Login, LoginGoogle, googlePronto: googleConfigurado && !!requestGoogle, Editar, Deletar, sair,
+        }}>
             {children}
         </LoginContext.Provider>
     )
