@@ -61,7 +61,7 @@ export default function CadastroPage() {
 
       <Animated.View style={{ opacity: fade, transform: [{ translateY: rise }], flex: 1 }}>
         <View style={{ paddingHorizontal: 26, paddingTop: 26 }}>
-          <Text style={s.kicker}>DYNAMIC SENSOR</Text>
+          <Text style={s.kicker}>DYNAMIC FLAME SENSOR</Text>
           <Text style={[s.kicker, { color: colors.flame, marginTop: 8 }]}>CRIAR CONTA</Text>
           <Text style={[s.title, { marginTop: 12 }]}>Sua conta na casa</Text>
           <Text style={[s.body12, { marginTop: 10, maxWidth: 290 }]}>

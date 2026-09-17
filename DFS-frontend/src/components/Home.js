@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, RefreshControl, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../css/theme';
@@ -8,7 +8,9 @@ import Screen from './Screen';
 import { usePlacas } from '../context/PlacasContext';
 import { useSensores } from '../context/SensoresContext';
 import { estadoDoSensor } from '../utils/estadoSensor';
+import useAlarmeChama from '../hooks/useAlarmeChama';
 
+// Tela inicial: resumo do estado da casa (alarme, se houver, e os primeiros sensores).
 export default function Home() {
   const nav = useNavigation();
   const { colors } = useTheme();
@@ -16,18 +18,6 @@ export default function Home() {
   const { placas, carregando: carregandoPlacas, atualizar: atualizarPlacas } = usePlacas();
   const { sensores, carregando: carregandoSensores, atualizar: atualizarSensores } = useSensores();
   const breathe = useRef(new Animated.Value(0)).current;
-  // Guarda, por sensor, o serverTs da leitura de chama que estava ativa quando
-  // o usuário apertou "Silenciar" — a faixa volta a aparecer sozinha assim que
-  // chegar uma leitura de chama mais nova que essa (uma detecção nova de verdade),
-  // em vez de reaparecer no próximo polling mesmo sem nada ter mudado.
-  const [silenciadoAte, setSilenciadoAte] = useState({});
-
-  function silenciarAlarme(sensor) {
-    setSilenciadoAte((m) => ({
-      ...m,
-      [sensor.id]: (sensor.ultimaLeituraChama && sensor.ultimaLeituraChama.serverTs) || Date.now(),
-    }));
-  }
 
   useEffect(() => {
     Animated.loop(
@@ -43,12 +33,7 @@ export default function Home() {
 
   const scale = breathe.interpolate({ inputRange: [0, 1], outputRange: [1, 1.12] });
   const sensoresComEstado = sensores.map((sn) => ({ ...sn, estado: estadoDoSensor(sn) }));
-  const emChama = sensoresComEstado.find((sn) => {
-    if (sn.estado !== 'chama') return false;
-    const silenciadoEm = silenciadoAte[sn.id];
-    const leituraTs = sn.ultimaLeituraChama && sn.ultimaLeituraChama.serverTs;
-    return !(silenciadoEm != null && leituraTs != null && leituraTs <= silenciadoEm);
-  });
+  const { emChama, silenciarAlarme } = useAlarmeChama(sensoresComEstado);
   const emGas = sensoresComEstado.find((sn) => sn.estado === 'gas');
   const alerta = emChama || emGas;
   const placasOffline = placas.filter((p) => Date.now() - p.ultimoBeat > 5 * 60 * 1000).length;

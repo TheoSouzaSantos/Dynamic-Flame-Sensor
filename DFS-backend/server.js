@@ -1,35 +1,50 @@
-const express = require('express');
-const app = express();
-const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
-if(!process.env.API_SECRET || !process.env.FIREBASE_KEY_PATH) 
-    throw new Error('Faltando chaves da API e do Firebase');
+const express = require('express');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 
-const routerSensores = require('./rotas/sensores');
-const routerPlacas = require('./rotas/placas');
 const routerAuth = require('./rotas/auth');
+const routerPlacas = require('./rotas/placas');
+const routerSensores = require('./rotas/sensores');
 
-const limitAuth = rateLimit({windowMs: 15 * 60 * 1000, limit: 20, message: 'Limite de requisição atingido'})
-const limitSensor = rateLimit({windowMs: 60 * 1000, limit: 30, message: 'Limite de requisição atingido'})
+if (!process.env.API_SECRET || !process.env.FIREBASE_KEY_PATH) {
+    throw new Error('Faltando chaves da API e do Firebase');
+}
 
+const PORT = process.env.PORT || 3000;
+
+/** Autenticação de dispositivo/usuário: 20 tentativas a cada 15 minutos por IP. */
+const limitAuth = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 20,
+    message: 'Limite de requisição atingido',
+});
+
+/** Telemetria enviada pelas placas: 30 requisições por minuto por IP. */
+const limitSensor = rateLimit({
+    windowMs: 60 * 1000,
+    limit: 30,
+    message: 'Limite de requisição atingido',
+});
+
+const app = express();
+
+// Necessário no Render (e em qualquer proxy reverso) para que o
+// express-rate-limit identifique o IP real do cliente via X-Forwarded-For.
 app.set('trust proxy', 1);
 
 app.use(helmet());
 app.use(express.json({ limit: '10kb' }));
+
 app.get('/health', (req, res) => res.status(200).json({ status: 'ok' }));
-const PORT = process.env.PORT;
 
+app.use('/auth', limitAuth, routerAuth);
+app.use('/placas', routerPlacas);
+app.use('/sensores', limitSensor, routerSensores);
 
-
-//Sensores
-app.use("/sensores", limitSensor, routerSensores);
-
-app.use("/placas", routerPlacas);
-
-app.use("/auth", limitAuth, routerAuth);
-
-app.listen(PORT || 3000, () => {
-    console.log('API Ativa');
+app.listen(PORT, () => {
+    console.log(`API ativa na porta ${PORT}`);
 });
+
+module.exports = app;

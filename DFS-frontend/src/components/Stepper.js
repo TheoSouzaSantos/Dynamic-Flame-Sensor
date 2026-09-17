@@ -2,6 +2,7 @@ import React from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+// Contador +/- genérico (usado para capacidade de sensores de chama/gás por placa).
 export default function Stepper({ s, colors, label, valor, onChange, icone, cor }) {
   return (
     <View style={[s.card, { gap: 10 }]}>

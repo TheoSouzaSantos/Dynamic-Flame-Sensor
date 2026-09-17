@@ -11,9 +11,11 @@ import Screen from './Screen';
 import { usePlacas } from '../context/PlacasContext';
 import { useSensores } from '../context/SensoresContext';
 import { estadoDoSensor } from '../utils/estadoSensor';
+import useAlarmeChama from '../hooks/useAlarmeChama';
 
 const CHAVE_OCULTOS = '@dfs/painel-sensores-ocultos';
 
+// Painel: grade com todos os sensores e seus estados atuais.
 export default function Dashboard() {
   const nav = useNavigation();
   const { colors } = useTheme();
@@ -21,18 +23,6 @@ export default function Dashboard() {
   const { placas, carregando: carregandoPlacas, atualizar: atualizarPlacas } = usePlacas();
   const { sensores, carregando: carregandoSensores, atualizar: atualizarSensores } = useSensores();
   const [ocultos, setOcultos] = useState([]);
-  // Guarda, por sensor, o serverTs da leitura de chama que estava ativa quando
-  // o usuário apertou "Silenciar" — a faixa volta a aparecer sozinha assim que
-  // chegar uma leitura de chama mais nova que essa (uma detecção nova de verdade),
-  // em vez de reaparecer no próximo polling mesmo sem nada ter mudado.
-  const [silenciadoAte, setSilenciadoAte] = useState({});
-
-  function silenciarAlarme(sensor) {
-    setSilenciadoAte((m) => ({
-      ...m,
-      [sensor.id]: (sensor.ultimaLeituraChama && sensor.ultimaLeituraChama.serverTs) || Date.now(),
-    }));
-  }
 
   useEffect(() => {
     AsyncStorage.getItem(CHAVE_OCULTOS)
@@ -66,12 +56,7 @@ export default function Dashboard() {
   const sensoresComEstado = sensores
     .filter((sn) => sn.ativo || !ocultos.includes(sn.id))
     .map((sensor) => ({ ...sensor, estado: estadoDoSensor(sensor) }));
-  const emChama = sensoresComEstado.find((sn) => {
-    if (sn.estado !== 'chama') return false;
-    const silenciadoEm = silenciadoAte[sn.id];
-    const leituraTs = sn.ultimaLeituraChama && sn.ultimaLeituraChama.serverTs;
-    return !(silenciadoEm != null && leituraTs != null && leituraTs <= silenciadoEm);
-  });
+  const { emChama, silenciarAlarme } = useAlarmeChama(sensoresComEstado);
   const cômodos = new Set(sensores.filter((sn) => sn.comodo).map((sn) => sn.comodo));
   const placasOffline = placas.filter((p) => Date.now() - p.ultimoBeat > 5 * 60 * 1000).length;
 

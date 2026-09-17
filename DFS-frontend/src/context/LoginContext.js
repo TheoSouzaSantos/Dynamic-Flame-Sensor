@@ -13,6 +13,9 @@ WebBrowser.maybeCompleteAuthSession();
 
 const LoginContext = createContext();
 
+// Sessão do usuário: cadastro/login (e-mail/senha e Google), edição de perfil
+// e exclusão de conta. `user` é `null` enquanto não autenticado e durante
+// `carregando` (restauração da sessão salva no boot do app).
 export function LoginProvider({children}) {
     const [user, setUser] = useState(null);
     const [carregando, setCarregando] = useState(true);
@@ -20,11 +23,7 @@ export function LoginProvider({children}) {
     // Precisa de EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID (e, se for gerar build nativo
     // de verdade, também os client IDs de Android/iOS) vindos do Google Cloud
     // Console do mesmo projeto Firebase, depois de ativar o provedor Google em
-    // Authentication > Sign-in method. Enquanto o .env não tiver nenhum desses
-    // client IDs preenchido, `request` do hook já vem "pronto" (ele monta o
-    // objeto mesmo sem clientId) — por isso checamos os client IDs também,
-    // não só o `request`, pra não deixar o botão parecendo funcional antes da
-    // hora.
+    // Authentication > Sign-in method. 
     const googleConfigurado = !!(process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID
         || process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID
         || process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID);
@@ -60,69 +59,38 @@ export function LoginProvider({children}) {
     }, []);
 
     async function Cadastro({ nome, email, senha }) {
-    try {
+        try {
+            const credencial = await createUserWithEmailAndPassword(auth, email, senha);
+            const usuariouid = credencial.user.uid;
 
-        console.log("1 - tentando criar conta");
+            await setDoc(doc(db, "usuarios", usuariouid), { nome, email });
 
-        const credencial = await createUserWithEmailAndPassword(
-            auth,
-            email,
-            senha
-        );
-
-        console.log("2 - conta criada no Authentication");
-
-        const usuariouid = credencial.user.uid;
-
-        console.log("3 - tentando criar documento no Firestore");
-
-        await setDoc(doc(db, "usuarios", usuariouid), {
-            nome: nome,
-            email: email
-        });
-
-        console.log("4 - documento criado");
-
-        setUser({
-            id: usuariouid,
-            nome: nome,
-            email: email
-        });
-
-        return true;
-
-    } catch (error) {
-
-        console.log("ERRO:", error.code);
-        console.log("MENSAGEM:", error.message);
-
-        return false;
+            setUser({ id: usuariouid, nome, email });
+            return true;
+        } catch (error) {
+            console.log("Erro no cadastro:", error.message);
+            return false;
+        }
     }
-}
-    async function Login({email, senha}){
-        try{
+    async function Login({ email, senha }) {
+        try {
             const credencial = await signInWithEmailAndPassword(auth, email, senha);
             const usuariouid = credencial.user.uid;
 
             const referenciadoc = doc(db, "usuarios", usuariouid);
             const verdoc = await getDoc(referenciadoc);
 
-            if(verdoc.exists()){
-                setUser({
-                    id: usuariouid,
-                    nome: verdoc.data().nome,
-                    email: credencial.user.email
-                });
+            if (!verdoc.exists()) return false;
 
-                return true;
-            }
-
+            setUser({
+                id: usuariouid,
+                nome: verdoc.data().nome,
+                email: credencial.user.email
+            });
+            return true;
+        } catch (error) {
+            console.log("Erro no login:", error.message);
             return false;
-        }
-        catch (error){
-
-           console.log("Erro no login:", error.message);
-           return false;
         }
     }
 
@@ -160,14 +128,14 @@ export function LoginProvider({children}) {
         }
     }
 
-    async function Editar(dados){
-        try{
-            if (!user) return false
+    async function Editar(dados) {
+        try {
+            if (!user) return false;
 
             // Atualiza o e-mail no Auth primeiro: se falhar (ex.: exige login
             // recente), o Firestore não fica com um e-mail que o Auth não tem.
-            if(dados.email !== user.email){
-                await updateEmail(auth.currentUser, dados.email)
+            if (dados.email !== user.email) {
+                await updateEmail(auth.currentUser, dados.email);
             }
 
             const referenciadoc = doc(db, "usuarios", user.id);
@@ -179,8 +147,7 @@ export function LoginProvider({children}) {
 
             setUser({ ...user, nome: dados.nome, email: dados.email });
             return true;
-        }
-        catch (error){
+        } catch (error) {
             console.log("Erro ao editar:", error.message);
             return false;
         }
@@ -201,14 +168,12 @@ export function LoginProvider({children}) {
             console.log("Erro ao deletar:", error.message);
             return false;
         }
-
-
     }
 
     const sair = () => {
         signOut(auth).catch(() => {});
         setUser(null);
-    }
+    };
 
     return (
         <LoginContext.Provider value={{
@@ -216,7 +181,7 @@ export function LoginProvider({children}) {
         }}>
             {children}
         </LoginContext.Provider>
-    )
+    );
 }
 
 export function useLogin () {
