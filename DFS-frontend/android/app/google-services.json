@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "638183225251",
+    "project_id": "dynamic-flame-sensor-cb50b",
+    "storage_bucket": "dynamic-flame-sensor-cb50b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:638183225251:android:50d9aeabc968eede7d8c16",
+        "android_client_info": {
+          "package_name": "com.anonymous.DFS"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "638183225251-ajj2045kjbblgn7vg13vle82ikulhr9s.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBNTI91iat-G-IZ_CC6GmFEcaWFMUtbcM0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "638183225251-ajj2045kjbblgn7vg13vle82ikulhr9s.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

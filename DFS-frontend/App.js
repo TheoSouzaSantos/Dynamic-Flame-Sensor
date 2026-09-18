@@ -1,9 +1,11 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import * as Notifications from 'expo-notifications';
+import { createNavigationContainerRef } from '@react-navigation/native';
 
 import { LoginProvider, useLogin } from './src/context/LoginContext';
 import { PlacasProvider } from './src/context/PlacasContext';
@@ -20,7 +22,18 @@ import SensorDetalhe from './src/components/SensorDetalhe';
 import GerenciarPlacas from './src/components/GerenciarPlacas';
 import DrawerNav from './src/navigation/DrawerNav';
 
+export const navigationRef = createNavigationContainerRef();
+
 const Stack = createNativeStackNavigator();
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
 
 function Rotas() {
   const { colors, isDark } = useTheme();
@@ -30,7 +43,28 @@ function Rotas() {
     colors: { ...(isDark ? DarkTheme : DefaultTheme).colors, background: colors.bg,
       card: colors.card, text: colors.textPrimary, border: colors.border, primary: colors.flame },
   };
+  
+  const ultimaNotificacao = Notifications.useLastNotificationResponse();
+  useEffect(() => {
+    if(ultimaNotificacao){
+      const { sensorId } = ultimaNotificacao.notification.request.content.data;
+      if(navigationRef.isReady()){
+        navigationRef.navigate("SensorDetalhe", {sensorId: sensorId});
+      }
+    }
+    
+  }, [ultimaNotificacao]);
 
+  useEffect(()=>{
+    const notificacao = Notifications.addNotificationResponseReceivedListener((response) => {
+      const { sensorId } = response.notification.request.content.data;
+      if(navigationRef.isReady()){
+        navigationRef.navigate("SensorDetalhe", {sensorId: sensorId});
+      }
+      
+    });
+    return () => notificacao.remove();
+  }, []);
   if (carregando) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg }}>

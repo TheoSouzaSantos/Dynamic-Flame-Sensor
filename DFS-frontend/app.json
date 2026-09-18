@@ -15,7 +15,8 @@
         "backgroundColor": "#000000",
         "foregroundImage": "./assets/DFS-icon.png"
       },
-      "package": "com.anonymous.DFS"
+      "package": "com.anonymous.DFS",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "favicon": "./assets/favicon.png"

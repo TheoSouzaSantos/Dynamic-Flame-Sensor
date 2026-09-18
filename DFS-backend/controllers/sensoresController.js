@@ -4,7 +4,7 @@ const validarId = require('../utils/validarId');
 const sanitizarTexto = require('../utils/sanitizarTexto');
 const { buscarDocumentoDoUsuario, buscarLeiturasRecentes } = require('../utils/ownership');
 const { STATUS_PLACA, TIPO_SENSOR, ESTADO_LEITURA, LEITURAS_INTERVALO_REPETICAO_MS } = require('../config/constants');
-
+const axios = require('axios');
 const MSG_SENSOR_NAO_EXISTE = 'O sensor não existe';
 
 /**
@@ -282,6 +282,47 @@ const registrarLeitura = async (req, res) => {
                 [campoEstado]: estado,
                 [campoUltimaLeitura]: { valor: leitura, serverTs: Date.now() },
             });
+            
+            if(ultimoEstado != estado){
+                try{
+                    const userId = sensorDoc.data().userId;
+                    const userSnap = await db.collection('usuarios').doc(userId).get();
+                    if(userSnap.exists){
+                        const userDoc = userSnap.data();
+                        const pushToken = userDoc.pushToken;
+                        if(pushToken){
+                            const corpoNotificacao = {};
+                            switch (estado) {
+                                case "chama":
+                                    corpoNotificacao.titulo = "PERIGO! CHAMA DETECTADA!";
+                                    corpoNotificacao.body = "UM DOS SEUS SENSORES DETECTOU CHAMA.";
+                                    break;
+                                case "gas":
+                                    corpoNotificacao.titulo = "PERIGO! GÁS DETECTADO!";
+                                    corpoNotificacao.body = "UM DOS SEUS SENSORES DETECTOU GÁS.";
+                                    break;
+                                case "seguro":
+                                    corpoNotificacao.titulo = "Problema resolvido!";
+                                    corpoNotificacao.body = "Tudo está seguro, fique tranquilo!";
+                                break;
+                                default:
+
+                                    break;
+                            }
+                            await axios.post('https://exp.host/--/api/v2/push/send', {
+                                to: pushToken,
+                                title: corpoNotificacao.titulo,
+                                body: corpoNotificacao.body,
+                                sound: 'default',
+                                data: {sensorId: sensorDoc.id}
+                                
+                            });
+                        }
+                    }
+                } catch (error){
+                    console.log("Erro ao notificar:", error.message);
+                }
+            }
         }
 
         return res.status(200).json({ ok: true });

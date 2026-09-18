@@ -4,7 +4,7 @@
 GET {{baseUrl}}/health
 
 ### ============ USUÁRIO ============
-@firebaseApiKey = API_KEY_FIREBASE
+@firebaseApiKey = AIzaSyDDB4wns3Irkrsm1xwft8AX1iYecAWjFBk
 
 ### Login (pega o idToken igual o app faz por trás dos panos)
 # @name loginFirebase
@@ -12,8 +12,8 @@ POST https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={
 Content-Type: application/json
 
 {
-  "email": "EMAIL_USUARIO",
-  "password": "SENHA_USUARIO",
+  "email": "ssztheo@gmail.com",
+  "password": "senha123",
   "returnSecureToken": true
 }
 
@@ -36,7 +36,7 @@ Content-Type: application/json
 {
   "pairCode": "{{criarPlaca.response.body.pairCode}}",
   "chipId": "chip-teste-123",
-  "secretHash": "CRIE_UM_SHA256_PARA_O_DEVICE_SECRET"
+  "secretHash": "289160db0d9f39f9ae1754c4ec9c16f90b50e32e09c5fb5481ae642b3d3d1a36"
 }
 
 ### Re-login da placa (device já provisionado)
@@ -46,7 +46,7 @@ Content-Type: application/json
 
 {
   "placaId": "{{provisionarPlaca.response.body.placaId}}",
-  "secret": "DEVICE_SECRET_CRU"
+  "secret": "teste123"
 }
 
 ### Listar minhas placas
@@ -94,9 +94,9 @@ Content-Type: application/json
 Authorization: Bearer {{loginFirebase.response.body.idToken}}
 
 {
-  "nome": "Sensor Quarto",
-  "comodo": "Quarto",
-  "tipoGas": true
+  "nome": "Sensor Cozinha",
+  "comodo": "Cozinha",
+  "tipoChama": true
 }
 
 ### Criar sensor sem nome/tipo → 400
@@ -175,9 +175,9 @@ Content-Type: application/json
 Authorization: Bearer {{loginPlaca.response.body.accessToken}}
 
 {
-  "tipo": "gas",
+  "tipo": "chama",
   "indice": 1,
-  "estado": "gas",
+  "estado": "chama",
   "leitura": 950
 }
 

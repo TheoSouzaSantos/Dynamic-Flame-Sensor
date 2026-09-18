@@ -69,7 +69,7 @@ export function LoginProvider({children}) {
                     }
 
 
-                } catch{
+                } catch(error){
                     console.log("Erro ao registrar notificação:", error.message);
                 }
                 
