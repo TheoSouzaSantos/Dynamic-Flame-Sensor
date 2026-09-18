@@ -1,1 +1,0 @@
-int drawable baseline_local_fire_department_24 0x0
