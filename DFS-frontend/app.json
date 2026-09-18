@@ -5,17 +5,15 @@
     "version": "1.0.0",
     "scheme": "dfs",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/DFS-icon.png",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "backgroundColor": "#000000",
+        "foregroundImage": "./assets/DFS-icon.png"
       },
       "package": "com.anonymous.DFS"
     },
@@ -25,7 +23,14 @@
     "plugins": [
       "expo-font",
       "expo-status-bar",
-      "expo-web-browser"
-    ]
+      "expo-web-browser",
+      "expo-notifications"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "7a007283-c5cc-48e2-9b25-bb1d8ce141ff"
+      }
+    },
+    "owner": "theo-souza"
   }
 }

@@ -1,6 +1,9 @@
 import React, { useState, useContext, createContext, useEffect } from 'react';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
+import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 
 import { auth, db } from '../../services/firebaseConfig';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithCredential, GoogleAuthProvider, updateEmail, onAuthStateChanged, signOut } from 'firebase/auth';
@@ -50,6 +53,27 @@ export function LoginProvider({children}) {
                     nome: verdoc.exists() ? verdoc.data().nome : '',
                     email: credencial.email
                 });
+                try{
+                    if (Platform.OS === 'android') {
+                        await Notifications.setNotificationChannelAsync('default', {
+                            name: 'default',
+                            importance: Notifications.AndroidImportance.MAX,
+                        });
+                    }
+
+                    const { status } = await Notifications.requestPermissionsAsync();
+                    if (status === 'granted') {
+                        const projectId = Constants.expoConfig.extra.eas.projectId;
+                        const { data: pushToken } = await Notifications.getExpoPushTokenAsync({ projectId });
+                        await updateDoc(referenciadoc, { pushToken });
+                    }
+
+
+                } catch{
+                    console.log("Erro ao registrar notificação:", error.message);
+                }
+                
+
             } finally {
                 setCarregando(false);
             }
