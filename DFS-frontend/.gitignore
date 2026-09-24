@@ -45,3 +45,5 @@ android/build/
 android/app/build/
 
 **/build/
+
+**/google-services.json
