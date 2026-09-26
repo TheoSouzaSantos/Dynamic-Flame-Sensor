@@ -4,7 +4,7 @@
 GET {{baseUrl}}/health
 
 ### ============ USUÁRIO ============
-@firebaseApiKey = AIzaSyDDB4wns3Irkrsm1xwft8AX1iYecAWjFBk
+@firebaseApiKey = API KEY DO FIREBASE
 
 ### Login (pega o idToken igual o app faz por trás dos panos)
 # @name loginFirebase
@@ -12,8 +12,8 @@ POST https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={
 Content-Type: application/json
 
 {
-  "email": "ssztheo@gmail.com",
-  "password": "senha123",
+  "email": LOGIN,
+  "password": SENHA,
   "returnSecureToken": true
 }
 
