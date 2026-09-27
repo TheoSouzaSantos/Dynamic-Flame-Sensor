@@ -30,8 +30,9 @@ const ITENS = [
   { rota: 'Sobre nós', icone: 'information-circle-outline' },
 ];
 
-// Enquanto a conta não tiver nenhuma placa pareada, Painel/Sensores/Histórico
-// são substituídos pela tela de "Conectar placa".
+// Enquanto a conta não tiver nenhuma placa ativa, Painel/Sensores/Histórico
+// são substituídos pela tela de "Conectar placa". Placas "aguardando" não
+// contam: são só um código gerado, que pode nunca chegar a ser usado.
 function comPlacaObrigatoria(TelaComponente) {
   return function TelaComGate(props) {
     const { placas, carregando } = usePlacas();
@@ -43,7 +44,7 @@ function comPlacaObrigatoria(TelaComponente) {
         </View>
       );
     }
-    if (!placas || placas.length === 0) return <ConectarPlaca {...props} />;
+    if (!placas || !placas.some((p) => p.status === 'ativa')) return <ConectarPlaca {...props} />;
     return <TelaComponente {...props} />;
   };
 }

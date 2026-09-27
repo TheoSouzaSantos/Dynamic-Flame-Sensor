@@ -1,6 +1,5 @@
 import React, { useState, useContext, createContext, useEffect } from 'react';
-import * as Google from 'expo-auth-session/providers/google';
-import * as WebBrowser from 'expo-web-browser';
+import { GoogleSignin, isSuccessResponse } from '@react-native-google-signin/google-signin';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
@@ -10,9 +9,12 @@ import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithC
 import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 import api from '../../services/api';
 
-// Fecha a aba do navegador aberta pelo fluxo do Google e devolve o controle pro
-// app assim que o Google redireciona de volta.
-WebBrowser.maybeCompleteAuthSession();
+// Login nativo (seletor de contas do Android, sem abrir o navegador). O
+// webClientId é o client "Web" do projeto Firebase: é ele que faz o Google
+// emitir um idToken que o Firebase Auth aceita.
+GoogleSignin.configure({
+    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+});
 
 const LoginContext = createContext();
 
@@ -23,18 +25,9 @@ export function LoginProvider({children}) {
     const [user, setUser] = useState(null);
     const [carregando, setCarregando] = useState(true);
 
-    // Precisa de EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID (e, se for gerar build nativo
-    // de verdade, também os client IDs de Android/iOS) vindos do Google Cloud
-    // Console do mesmo projeto Firebase, depois de ativar o provedor Google em
-    // Authentication > Sign-in method. 
-    const googleConfigurado = !!(process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID
-        || process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID
-        || process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID);
-    const [requestGoogle, , promptGoogle] = Google.useAuthRequest({
-        webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-        androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
-        iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-    });
+    // Precisa de EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID e do SHA-1 da chave que assina
+    // o app cadastrado no Firebase (Configurações do projeto > app Android).
+    const googleConfigurado = !!process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
 
     // Restaura a sessão salva (AsyncStorage) assim que o app abre.
     useEffect(() => {
@@ -124,13 +117,16 @@ export function LoginProvider({children}) {
     // Cadastro; nas próximas vezes, só carrega o documento que já existe.
     async function LoginGoogle() {
         try {
-            if (!googleConfigurado || !requestGoogle) return false;
+            if (!googleConfigurado) return false;
 
-            const resultado = await promptGoogle();
-            if (resultado.type !== 'success') return false;
+            await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+            const resultado = await GoogleSignin.signIn();
+            if (!isSuccessResponse(resultado)) return false;
 
-            const { id_token } = resultado.params;
-            const credencialGoogle = GoogleAuthProvider.credential(id_token);
+            const { idToken } = resultado.data;
+            if (!idToken) return false;
+
+            const credencialGoogle = GoogleAuthProvider.credential(idToken);
             const credencial = await signInWithCredential(auth, credencialGoogle);
             const usuariouid = credencial.user.uid;
 
@@ -196,12 +192,15 @@ export function LoginProvider({children}) {
 
     const sair = () => {
         signOut(auth).catch(() => {});
+        // Sem isso, o próximo "Entrar com Google" reusa a mesma conta sem
+        // mostrar o seletor.
+        GoogleSignin.signOut().catch(() => {});
         setUser(null);
     };
 
     return (
         <LoginContext.Provider value={{
-            user, carregando, Cadastro, Login, LoginGoogle, googlePronto: googleConfigurado && !!requestGoogle, Editar, Deletar, sair,
+            user, carregando, Cadastro, Login, LoginGoogle, googlePronto: googleConfigurado, Editar, Deletar, sair,
         }}>
             {children}
         </LoginContext.Provider>

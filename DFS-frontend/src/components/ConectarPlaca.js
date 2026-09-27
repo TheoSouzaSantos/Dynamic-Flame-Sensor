@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Text, TouchableOpacity, View } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../css/theme';
 import makeStyles from '../css/styles';
@@ -13,11 +14,19 @@ const DEZ_MINUTOS = 10 * 60;
 // Fluxo completo de conexão de uma placa nova: pareamento (código + validade)
 // e, depois de confirmada, quantos sensores físicos de cada tipo ela tem.
 // "Adicionar sensor" é outra tela — não lida com placa nem com o código.
+//
+// Esta tela aparece em dois lugares: como modal (rota "ConectarPlaca") e
+// embutida no lugar de Painel/Sensores/Histórico enquanto a conta não tem
+// placa ativa (ver DrawerNav). A versão embutida só mostra o convite: o fluxo
+// em si sempre roda no modal, porque a embutida é desmontada assim que a
+// lista de placas muda, e perderia o código e a etapa no meio do pareamento.
 export default function ConectarPlaca() {
   const nav = useNavigation();
+  const route = useRoute();
+  const embutida = route.name !== 'ConectarPlaca';
   const { colors } = useTheme();
   const s = makeStyles(colors);
-  const { placas, criarPlaca, definirCapacidade, atualizar } = usePlacas();
+  const { placas, criarPlaca, definirCapacidade, desconectarPlaca, atualizar } = usePlacas();
 
   const [etapa, setEtapa] = useState('inicio'); // inicio | pareando | capacidade
   const [placaId, setPlacaId] = useState(null);
@@ -28,6 +37,7 @@ export default function ConectarPlaca() {
   const [capacidadeChama, setCapacidadeChama] = useState(1);
   const [capacidadeGas, setCapacidadeGas] = useState(1);
   const [salvando, setSalvando] = useState(false);
+  const [copiado, setCopiado] = useState(false);
 
   const pulse = useRef(new Animated.Value(1)).current;
   const breathe = useRef(new Animated.Value(0)).current;
@@ -62,7 +72,38 @@ export default function ConectarPlaca() {
     if (placa && placa.status === 'ativa') setEtapa('capacidade');
   }, [placas, etapa, placaId]);
 
+  // Aberto pela versão embutida: já começa gerando o código.
+  useEffect(() => {
+    if (!embutida && route.params?.iniciar) conectar();
+  }, []);
+
+  useEffect(() => {
+    if (!copiado) return;
+    const t = setTimeout(() => setCopiado(false), 2000);
+    return () => clearTimeout(t);
+  }, [copiado]);
+
+  async function copiarCodigo() {
+    await Clipboard.setStringAsync(pairCode);
+    setCopiado(true);
+  }
+
+  // Revoga a placa pendente pra não deixar um documento "aguardando" órfão
+  // no banco (e um código ainda válido por aí).
+  async function cancelar() {
+    const id = placaId;
+    setPlacaId(null);
+    setPairCode('');
+    if (id) desconectarPlaca(id).catch(() => {});
+    if (nav.canGoBack()) nav.goBack();
+    else setEtapa('inicio');
+  }
+
   async function conectar() {
+    if (embutida) {
+      nav.navigate('ConectarPlaca', { iniciar: true });
+      return;
+    }
     setIniciando(true);
     setErro('');
     try {
@@ -93,6 +134,7 @@ export default function ConectarPlaca() {
 
   const minutos = String(Math.floor(restante / 60)).padStart(2, '0');
   const segundos = String(restante % 60).padStart(2, '0');
+  const temPlacaAtiva = placas.some((p) => p.status === 'ativa');
   const scale = breathe.interpolate({ inputRange: [0, 1], outputRange: [1, 1.1] });
 
   if (etapa === 'capacidade') {
@@ -157,10 +199,18 @@ export default function ConectarPlaca() {
 
           <View style={[s.card, { alignItems: 'center', paddingVertical: 24 }]}>
             <Text style={s.label}>CÓDIGO DE PAREAMENTO</Text>
-            <Text style={{ fontFamily: 'Georgia', fontSize: 34, letterSpacing: 4,
-              color: colors.textPrimary, marginTop: 10 }}>
-              {pairCode}
-            </Text>
+            <View style={[s.row, { gap: 12, marginTop: 10 }]}>
+              <Text selectable style={{ fontFamily: 'Georgia', fontSize: 34, letterSpacing: 4,
+                color: colors.textPrimary }}>
+                {pairCode}
+              </Text>
+              <TouchableOpacity onPress={copiarCodigo} hitSlop={10}
+                accessibilityLabel="Copiar código de pareamento">
+                <Ionicons name={copiado ? 'checkmark' : 'copy-outline'} size={22}
+                  color={copiado ? colors.gas : colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+            {copiado && <Text style={[s.body12, { marginTop: 6 }]}>Código copiado</Text>}
             <Text style={[s.mono, { marginTop: 10 }]}>Expira em {minutos}:{segundos}</Text>
           </View>
 
@@ -179,7 +229,7 @@ export default function ConectarPlaca() {
         </View>
 
         <View style={{ marginTop: 'auto', paddingHorizontal: 20, paddingBottom: 22 }}>
-          <TouchableOpacity style={s.btnGhost} onPress={() => setEtapa('inicio')}>
+          <TouchableOpacity style={s.btnGhost} onPress={cancelar}>
             <Text style={s.btnGhostText}>Cancelar</Text>
           </TouchableOpacity>
         </View>
@@ -199,10 +249,10 @@ export default function ConectarPlaca() {
       </View>
 
       <Text style={[s.title, { marginTop: 28, textAlign: 'center' }]}>
-        {placas.length === 0 ? 'Nenhuma placa conectada' : 'Conectar outra placa'}
+        {!temPlacaAtiva ? 'Nenhuma placa conectada' : 'Conectar outra placa'}
       </Text>
       <Text style={[s.body14, { marginTop: 10, textAlign: 'center', maxWidth: 300 }]}>
-        {placas.length === 0
+        {!temPlacaAtiva
           ? 'Conecte sua primeira placa ESP para começar a monitorar chama e gás pelo app.'
           : 'Pareie mais uma placa para aumentar o saldo de sensores que você pode cadastrar.'}
       </Text>
