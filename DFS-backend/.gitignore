@@ -17,6 +17,7 @@ yarn-error.*
 # local env files
 .env*.local
 firebase-key.json
+dynamic-flame-sensor-cb50b-firebase-adminsdk-fbsvc-34924dc326.json
 **/.env
 # typescript
 *.tsbuildinfo
