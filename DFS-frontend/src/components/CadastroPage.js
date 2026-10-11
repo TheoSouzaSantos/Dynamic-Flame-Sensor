@@ -1,14 +1,26 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Alert, Animated, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Animated, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useLogin } from '../context/LoginContext';
+import { useAlertModal } from '../context/AlertModalContext';
 import { useTheme } from '../css/theme';
 import makeStyles from '../css/styles';
 import Screen from './Screen';
+import { avaliarSenha, classificarForca } from '../utils/passwordStrength';
+
+const LABEL_FORCA = { fraca: 'Fraca', mediana: 'Mediana', forte: 'Forte' };
+const REQUISITOS_LABEL = [
+  { chave: 'tamanho', texto: '6+ caracteres' },
+  { chave: 'maiuscula', texto: 'Letra maiúscula' },
+  { chave: 'minuscula', texto: 'Letra minúscula' },
+  { chave: 'numero', texto: 'Número' },
+  { chave: 'simbolo', texto: 'Símbolo' },
+];
 
 export default function CadastroPage() {
   const { Cadastro, LoginGoogle, googlePronto } = useLogin();
+  const { alertar } = useAlertModal();
   const nav = useNavigation();
   const { colors } = useTheme();
   const s = makeStyles(colors);
@@ -20,6 +32,12 @@ export default function CadastroPage() {
   const [focused, setFocused] = useState(null);
   const [entrandoComGoogle, setEntrandoComGoogle] = useState(false);
 
+  const { requisitos, count } = avaliarSenha(senha);
+  const forca = classificarForca(count);
+  const corForca = { fraca: colors.flame, mediana: '#D97706', forte: colors.gas }[forca];
+  const senhaForte = forca === 'forte';
+  const cadastroHabilitado = nome.trim() !== '' && email.trim() !== '' && senhaForte;
+
   const rise = useRef(new Animated.Value(14)).current;
   const fade = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -30,13 +48,13 @@ export default function CadastroPage() {
   }, []);
 
   async function EnviarCadastro() {
-    if (nome.trim() === '' || email.trim() === '' || senha.trim() === '') return;
-    const success = await Cadastro({ nome, email, senha });
-    if (success) {
-      Alert.alert('Conta criada!', 'Bem-vindo ao Dynamic Sensor.');
+    if (!cadastroHabilitado) return;
+    const resultado = await Cadastro({ nome, email, senha });
+    if (resultado.ok) {
+      alertar('Conta criada!', 'Bem-vindo ao Dynamic Sensor.', { tipo: 'sucesso' });
       nav.navigate('App');
     } else {
-      Alert.alert('Erro', 'Não foi possível conectar ao servidor.');
+      alertar('Erro', resultado.error);
     }
     setNome(''); setEmail(''); setSenha('');
   }
@@ -44,8 +62,9 @@ export default function CadastroPage() {
   async function CriarContaComGoogle() {
     setEntrandoComGoogle(true);
     try {
-      const success = await LoginGoogle();
-      if (success) nav.navigate('App');
+      const resultado = await LoginGoogle();
+      if (resultado.ok) nav.navigate('App');
+      else if (resultado.error) alertar('Erro', resultado.error);
     } finally {
       setEntrandoComGoogle(false);
     }
@@ -87,11 +106,38 @@ export default function CadastroPage() {
                   color={colors.textMuted} />
               </TouchableOpacity>
             } />
+
+          {senha.length > 0 && (
+            <Text style={[s.body12, { marginTop: -4, marginBottom: 10, color: corForca, fontWeight: '600' }]}>
+              Força da senha: {LABEL_FORCA[forca]}
+            </Text>
+          )}
+
+          <View style={{ marginBottom: 10, gap: 4 }}>
+            {REQUISITOS_LABEL.map(({ chave, texto }) => {
+              const atendido = requisitos[chave];
+              return (
+                <View key={chave} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Ionicons
+                    name={atendido ? 'checkmark-circle' : 'ellipse-outline'}
+                    size={14}
+                    color={atendido ? colors.gas : colors.textMuted}
+                  />
+                  <Text style={[s.body12, { color: atendido ? colors.textPrimary : colors.textMuted }]}>
+                    {texto}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
         </View>
       </Animated.View>
 
       <View style={{ paddingHorizontal: 26, paddingBottom: 24, gap: 12 }}>
-        <TouchableOpacity style={s.btnPrimary} onPress={EnviarCadastro}>
+        <TouchableOpacity
+          style={[s.btnPrimary, { opacity: cadastroHabilitado ? 1 : 0.5 }]}
+          disabled={!cadastroHabilitado}
+          onPress={EnviarCadastro}>
           <Text style={s.btnPrimaryText}>Criar conta</Text>
         </TouchableOpacity>
         <TouchableOpacity

@@ -1,3 +1,5 @@
+// Tela de boas-vindas (pré-login): ponto de entrada pra "Entrar" ou
+// "Cadastro", mostrada quando não há sessão ativa (ver App.js).
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -22,9 +24,9 @@ export default function Intro() {
 
   const scale = breathe.interpolate({ inputRange: [0, 1], outputRange: [1, 1.12] });
   const pontos = [
-    { cor: colors.flame, texto: 'Alerta imediato, mesmo no modo silencioso' },
-    { cor: colors.gas, texto: 'Um cartão por cômodo, com o estado de cada placa' },
-    { cor: colors.textMuted, texto: 'Histórico completo de eventos e ações' },
+    { cor: colors.flame, texto: 'Alerta no celular assim que a placa detecta chama ou gás' },
+    { cor: colors.gas, texto: 'Um cartão por sensor, com o cômodo e o estado atual' },
+    { cor: colors.textMuted, texto: 'Histórico das últimas leituras de cada sensor' },
   ];
 
   return (
@@ -48,7 +50,7 @@ export default function Intro() {
           </View>
           <Text style={[s.display, { textAlign: 'center', marginTop: 34 }]}>A casa avisa antes do fogo</Text>
           <Text style={[s.body14, { textAlign: 'center', marginTop: 14, maxWidth: 290 }]}>
-            Suas placas de chama, gás e fumaça em um só lugar. O alarme chega no celular no
+            Seus sensores de chama e gás em um só lugar. O alarme chega no celular no
             instante da detecção.
           </Text>
         </View>

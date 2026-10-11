@@ -14,8 +14,13 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-// Persistência via AsyncStorage: mantém a sessão do usuário entre aberturas do app.
+// `initializeAuth` + `getReactNativePersistence`, não `getAuth`: o Firebase
+// Auth padrão usa `localStorage`, que não existe em React Native — sem essa
+// configuração explícita a sessão do usuário seria perdida a cada abertura
+// do app. `getReactNativePersistence(AsyncStorage)` guarda a sessão ali.
 export const auth = initializeAuth(app, {
-    persistence: getReactNativePersistence(AsyncStorage),
+    persistence: getReactNativePersistence(AsyncStorage),    
 });
+//auth.languageCode = 'pt-BR';
+
 export const db = getFirestore(app);

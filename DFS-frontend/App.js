@@ -1,3 +1,10 @@
+// Pilha de navegação raiz. "Intro"/"Entrar"/"Cadastro"/"EsqueciSenha" cobrem
+// o fluxo de autenticação; "App" é o drawer principal (ver DrawerNav) pra
+// quem já está logado. EditarPage/ConectarPlaca/AdicionaSensor são
+// `presentation: 'modal'` porque são ações pontuais disparadas de dentro do
+// app (editar perfil, parear uma placa, cadastrar um sensor) — abrem por
+// cima da tela atual em vez de substituí-la, e voltam exatamente pra onde
+// o usuário estava ao fechar.
 import React, {useEffect} from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
@@ -10,11 +17,13 @@ import { createNavigationContainerRef } from '@react-navigation/native';
 import { LoginProvider, useLogin } from './src/context/LoginContext';
 import { PlacasProvider } from './src/context/PlacasContext';
 import { SensoresProvider } from './src/context/SensoresContext';
+import { AlertModalProvider } from './src/context/AlertModalContext';
 import { ThemeProvider, useTheme } from './src/css/theme';
 
 import Intro from './src/components/Intro';
 import LoginPage from './src/components/LoginPage';
 import CadastroPage from './src/components/CadastroPage';
+import EsqueciSenhaPage from './src/components/EsqueciSenhaPage';
 import EditarPage from './src/components/EditarPage';
 import ConectarPlaca from './src/components/ConectarPlaca';
 import AdicionaSensor from './src/components/AdicionaSensor';
@@ -81,6 +90,7 @@ function Rotas() {
         <Stack.Screen name="Intro" component={Intro} />
         <Stack.Screen name="Entrar" component={LoginPage} />
         <Stack.Screen name="Cadastro" component={CadastroPage} />
+        <Stack.Screen name="EsqueciSenha" component={EsqueciSenhaPage} />
         <Stack.Screen name="App" component={DrawerNav} />
         <Stack.Screen name="EditarPage" component={EditarPage}
           options={{ presentation: 'modal' }} />
@@ -99,13 +109,15 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <LoginProvider>
-          <PlacasProvider>
-            <SensoresProvider>
-              <Rotas />
-            </SensoresProvider>
-          </PlacasProvider>
-        </LoginProvider>
+        <AlertModalProvider>
+          <LoginProvider>
+            <PlacasProvider>
+              <SensoresProvider>
+                <Rotas />
+              </SensoresProvider>
+            </PlacasProvider>
+          </LoginProvider>
+        </AlertModalProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );

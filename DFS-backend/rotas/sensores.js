@@ -7,6 +7,7 @@ const router = express.Router();
 router.get('/', autenticar, sensoresController.listar);
 router.post('/', autenticar, sensoresController.criar);
 router.patch('/:id', autenticar, sensoresController.atualizar);
+router.delete('/:id', autenticar, sensoresController.excluir);
 router.get('/:id/leituras', autenticar, sensoresController.listarLeituras);
 router.post('/leituras', autenticar, sensoresController.registrarLeitura);
 

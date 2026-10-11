@@ -1,11 +1,11 @@
 const { nanoid } = require('nanoid');
-const { Filter } = require('firebase-admin/firestore');
 const { db } = require('../config/db');
 const handleError = require('../utils/handleError');
 const validarId = require('../utils/validarId');
 const { hashSecret } = require('../utils/cryptoHash');
+const commitEmChunks = require('../utils/chunkBatch');
 const { buscarDocumentoDoUsuario, buscarLeiturasRecentes } = require('../utils/ownership');
-const { STATUS_PLACA, PAIR_CODE_TAMANHO, PAIR_CODE_VALIDADE_MS, CAPACIDADE_MAXIMA_SENSORES } = require('../config/constants');
+const { STATUS_PLACA, ESTADO_LEITURA, PAIR_CODE_TAMANHO, PAIR_CODE_VALIDADE_MS, CAPACIDADE_MAXIMA_SENSORES } = require('../config/constants');
 
 const MSG_PLACA_NAO_EXISTE = 'A placa não existe';
 
@@ -72,55 +72,119 @@ const criar = async (req, res) => {
 };
 
 /** Valida um valor de capacidade recebido no PATCH (inteiro dentro da faixa aceita). */
-const capacidadeValida = (valor) => Number.isFinite(valor) && valor >= 0 && valor <= CAPACIDADE_MAXIMA_SENSORES;
+const capacidadeValida = (valor) => Number.isInteger(valor) && valor >= 0 && valor <= CAPACIDADE_MAXIMA_SENSORES;
 
 /**
- * Revoga uma placa: desativa os sensores vinculados a ela e marca a placa
- * como `revogada`.
+ * Revoga uma placa: marca a placa como `revogada` PRIMEIRO — antes de tocar em
+ * qualquer sensor — pra que nenhuma alocação concorrente (POST /sensores, que
+ * só aloca canal em placa com status "ativa") consiga se encaixar nela depois
+ * que a revogação começou. Só então limpa o que ficou vinculado a ela.
+ *
+ * Um sensor pode ter chama e gás alocados em placas diferentes (os dois
+ * canais são alocados de forma independente — ver sensoresController.criar).
+ * Por isso cada canal vinculado a esta placa é liberado individualmente: o
+ * sensor só é apagado de fato quando nenhum dos dois canais sobra alocado em
+ * outra placa; caso contrário ele continua existindo (com seu histórico) pelo
+ * canal que não era desta placa.
  */
 const revogarPlaca = async (idPlaca) => {
-    const orFilter = Filter.or(
-        Filter.where('placaIdChama', '==', idPlaca),
-        Filter.where('placaIdGas', '==', idPlaca),
-    );
-    const sensores = await db.collection('sensores').where(orFilter).get();
-
-    const batch = db.batch();
-    sensores.docs.forEach((sensor) => batch.update(sensor.ref, { ativo: false }));
-    await batch.commit();
-
     await db.collection('placas').doc(idPlaca).update({ status: STATUS_PLACA.REVOGADA });
+
+    const [porChama, porGas] = await Promise.all([
+        db.collection('sensores').where('placaIdChama', '==', idPlaca).get(),
+        db.collection('sensores').where('placaIdGas', '==', idPlaca).get(),
+    ]);
+    const sensoresPorId = new Map();
+    porChama.docs.forEach((doc) => sensoresPorId.set(doc.id, doc));
+    porGas.docs.forEach((doc) => sensoresPorId.set(doc.id, doc));
+
+    const operacoesSensores = [];
+    for (const sensor of sensoresPorId.values()) {
+        const dados = sensor.data();
+        const usaChamaNessaPlaca = dados.placaIdChama === idPlaca;
+        const usaGasNessaPlaca = dados.placaIdGas === idPlaca;
+        const outroCanalEmOutraPlaca = (usaChamaNessaPlaca && dados.placaIdGas && dados.placaIdGas !== idPlaca)
+            || (usaGasNessaPlaca && dados.placaIdChama && dados.placaIdChama !== idPlaca);
+
+        if (outroCanalEmOutraPlaca) {
+            const liberarCanal = {};
+            if (usaChamaNessaPlaca) {
+                liberarCanal.placaIdChama = null;
+                liberarCanal.indiceChama = null;
+                liberarCanal.estadoChama = ESTADO_LEITURA.SEGURO;
+            }
+            if (usaGasNessaPlaca) {
+                liberarCanal.placaIdGas = null;
+                liberarCanal.indiceGas = null;
+                liberarCanal.estadoGas = ESTADO_LEITURA.SEGURO;
+            }
+            operacoesSensores.push((batch) => batch.update(sensor.ref, liberarCanal));
+        } else {
+            operacoesSensores.push((batch) => batch.delete(sensor.ref));
+        }
+    }
+    await commitEmChunks(db, operacoesSensores);
+
+    const leituras = await db.collection('leituras').where('placaId', '==', idPlaca).get();
+    await commitEmChunks(db, leituras.docs.map((leitura) => (batch) => batch.delete(leitura.ref)));
 };
 
 /**
  * Atualiza a capacidade de canais (chama/gás) de uma placa, respeitando os
  * sensores já cadastrados nela.
+ *
+ * A checagem do maior índice em uso e a escrita da nova capacidade rodam
+ * dentro de uma transação — assim como a alocação de canal em
+ * sensoresController.criar() — pra que as duas não possam intercalar: sem
+ * isso, um PATCH de capacidade podia ler "nenhum índice em uso" bem antes de
+ * uma criação de sensor concorrente alocar um índice, e depois confirmar uma
+ * capacidade menor que esse índice já comitado.
  */
-const atualizarCapacidade = async (snapshot, idPlaca, body) => {
-    const dadosAtualizados = {};
-
-    if (capacidadeValida(body.capacidadeChama)) {
-        const qtdChama = (await db.collection('sensores').where('placaIdChama', '==', idPlaca).get()).size;
-        if (body.capacidadeChama < qtdChama) {
-            return { status: 409, erro: `Já existem ${qtdChama} sensores` };
-        }
-        dadosAtualizados.capacidadeChama = body.capacidadeChama;
+const atualizarCapacidade = async (idPlaca, body) => {
+    // Valida todos os campos informados ANTES de aplicar qualquer um: um
+    // valor fora da faixa não pode ser silenciosamente ignorado enquanto um
+    // outro campo válido na mesma requisição é salvo — a resposta precisa
+    // deixar claro que aquele valor não foi aceito.
+    if (body.capacidadeChama !== undefined && !capacidadeValida(body.capacidadeChama)) {
+        return { status: 400, erro: 'capacidadeChama inválida' };
     }
-
-    if (capacidadeValida(body.capacidadeGas)) {
-        const qtdGas = (await db.collection('sensores').where('placaIdGas', '==', idPlaca).get()).size;
-        if (body.capacidadeGas < qtdGas) {
-            return { status: 409, erro: `Já existem ${qtdGas} sensores` };
-        }
-        dadosAtualizados.capacidadeGas = body.capacidadeGas;
+    if (body.capacidadeGas !== undefined && !capacidadeValida(body.capacidadeGas)) {
+        return { status: 400, erro: 'capacidadeGas inválida' };
     }
-
-    if (Object.keys(dadosAtualizados).length === 0) {
+    if (body.capacidadeChama === undefined && body.capacidadeGas === undefined) {
         return { status: 400, erro: 'Dados inválidos' };
     }
 
-    await snapshot.ref.update(dadosAtualizados);
-    return null;
+    return db.runTransaction(async (tran) => {
+        const dadosAtualizados = {};
+
+        // Compara com o maior índice em uso, não com a quantidade: depois de
+        // excluir um sensor os índices podem ter buracos (ex.: só o canal 3
+        // ocupado), e reduzir a capacidade para 2 deixaria esse sensor fora da placa.
+        const maiorIndiceEmUso = async (campoPlacaId, campoIndice) => {
+            const sensores = await tran.get(db.collection('sensores').where(campoPlacaId, '==', idPlaca));
+            return sensores.docs.reduce((maior, sensor) => Math.max(maior, sensor.data()[campoIndice] || 0), 0);
+        };
+
+        if (body.capacidadeChama !== undefined) {
+            const maiorChama = await maiorIndiceEmUso('placaIdChama', 'indiceChama');
+            if (body.capacidadeChama < maiorChama) {
+                return { status: 409, erro: `O canal de chama ${maiorChama} está em uso por um sensor` };
+            }
+            dadosAtualizados.capacidadeChama = body.capacidadeChama;
+        }
+
+        if (body.capacidadeGas !== undefined) {
+            const maiorGas = await maiorIndiceEmUso('placaIdGas', 'indiceGas');
+            if (body.capacidadeGas < maiorGas) {
+                return { status: 409, erro: `O canal de gás ${maiorGas} está em uso por um sensor` };
+            }
+            dadosAtualizados.capacidadeGas = body.capacidadeGas;
+        }
+
+        tran.update(db.collection('placas').doc(idPlaca), dadosAtualizados);
+        return null;
+    });
 };
 
 /**
@@ -147,7 +211,7 @@ const atualizar = async (req, res) => {
             return res.status(200).json({ response: 'Placa Desconectada' });
         }
 
-        const falha = await atualizarCapacidade(dono.snapshot, idPlaca, req.body);
+        const falha = await atualizarCapacidade(idPlaca, req.body);
         if (falha) {
             return res.status(falha.status).json({ erro: falha.erro });
         }

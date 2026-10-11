@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useTheme } from '../css/theme';
 import makeStyles from '../css/styles';
@@ -19,10 +19,18 @@ export default function Historico() {
   const [eventos, setEventos] = useState([]);
   const [carregando, setCarregando] = useState(true);
 
+  // `sensores` é um array novo a cada polling do SensoresContext; depender
+  // dele direto refaria N requisições a cada poucos segundos (e estouraria o
+  // rate limit da API, travando a atualização do alarme). O efeito só
+  // recarrega quando o conjunto de sensores muda de fato — pelos ids.
+  const sensoresRef = useRef(sensores);
+  sensoresRef.current = sensores;
+  const idsSensores = sensores.map((sn) => sn.id).join(',');
+
   const carregar = useCallback(async () => {
     setCarregando(true);
     try {
-      const listas = await Promise.all(sensores.map(async (sn) => {
+      const listas = await Promise.all(sensoresRef.current.map(async (sn) => {
         const leituras = await buscarLeituras(sn.id);
         return leituras.map((l) => ({ ...l, sensor: sn.nome, comodo: sn.comodo }));
       }));
@@ -33,7 +41,7 @@ export default function Historico() {
     } finally {
       setCarregando(false);
     }
-  }, [sensores]);
+  }, [idsSensores, buscarLeituras]);
 
   useEffect(() => { carregar(); }, [carregar]);
 
@@ -65,7 +73,9 @@ export default function Historico() {
                   {ROTULOS[e.estado] || e.estado} · {e.sensor}
                 </Text>
                 <Text style={[s.body12, { marginTop: 3 }]}>
-                  {e.comodo ? `${e.comodo} · ` : ''}valor {e.valor}
+                  {/* O sensor de chama é digital (0/1), então o valor só
+                      diz algo útil para o gás (leitura analógica do MQ-2). */}
+                  {[e.comodo, e.tipo === 'gas' ? `leitura ${e.valor}` : null].filter(Boolean).join(' · ')}
                 </Text>
               </View>
             </View>

@@ -1,3 +1,5 @@
+// Lista completa de sensores do usuário, com filtro por ativo/desativado —
+// a visão "ver tudo" que complementa a grade resumida do Painel.
 import React, { useState } from 'react';
 import { RefreshControl, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';

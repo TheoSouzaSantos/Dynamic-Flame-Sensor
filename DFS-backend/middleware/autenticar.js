@@ -56,3 +56,7 @@ async function autenticar(req, res, next) {
 }
 
 module.exports = autenticar;
+// Reexportado para o keyGenerator do rate limiter de telemetria (server.js),
+// que precisa identificar a placa antes do middleware `autenticar` rodar —
+// reusa esta mesma checagem em vez de duplicá-la.
+module.exports.verificarTokenPlaca = verificarTokenPlaca;

@@ -1,0 +1,10 @@
+# Local build artifacts that must never be uploaded to EAS Build: they can
+# contain this machine's absolute filesystem paths baked in by Gradle/CMake
+# (e.g. android/build/generated/autolinking/autolinking.json), which breaks
+# the build on EAS's Linux builders if reused instead of being regenerated
+# fresh there. Belt-and-suspenders on top of the nested .gitignore rules.
+android/build/
+android/app/build/
+android/app/.cxx/
+android/.gradle/
+ios/build/

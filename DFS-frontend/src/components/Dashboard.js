@@ -12,6 +12,8 @@ import { usePlacas } from '../context/PlacasContext';
 import { useSensores } from '../context/SensoresContext';
 import { estadoDoSensor } from '../utils/estadoSensor';
 import useAlarmeChama from '../hooks/useAlarmeChama';
+import { contarPlacasOffline } from '../utils/placaOffline';
+import { tempoRelativo } from '../utils/tempoRelativo';
 
 const CHAVE_OCULTOS = '@dfs/painel-sensores-ocultos';
 
@@ -58,11 +60,13 @@ export default function Dashboard() {
     .map((sensor) => ({ ...sensor, estado: estadoDoSensor(sensor) }));
   const { emChama, silenciarAlarme } = useAlarmeChama(sensoresComEstado);
   const cômodos = new Set(sensores.filter((sn) => sn.comodo).map((sn) => sn.comodo));
-  const placasOffline = placas.filter((p) => Date.now() - p.ultimoBeat > 5 * 60 * 1000).length;
+  const placasOffline = contarPlacasOffline(placas);
 
   return (
     <Screen style={s.screen} edges={['bottom']}>
-      {emChama && <AlarmBanner comodo={emChama.comodo || emChama.nome} onSilenciar={() => silenciarAlarme(emChama)} />}
+      {emChama && <AlarmBanner comodo={emChama.comodo || emChama.nome}
+        quando={tempoRelativo(emChama.ultimaLeituraChama && emChama.ultimaLeituraChama.serverTs)}
+        onSilenciar={() => silenciarAlarme(emChama)} />}
       <ScrollView refreshControl={<RefreshControl refreshing={carregando} onRefresh={atualizar} tintColor={colors.flame} />}>
         <View style={{ paddingHorizontal: 20, paddingTop: 24 }}>
           <Text style={s.kicker}>MINHA CASA</Text>

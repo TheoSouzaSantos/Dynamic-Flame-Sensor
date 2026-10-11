@@ -6,7 +6,7 @@
     "scheme": "dfs",
     "orientation": "portrait",
     "icon": "./assets/DFS-icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true
     },
@@ -25,7 +25,13 @@
       "expo-font",
       "expo-status-bar",
       "expo-web-browser",
-      "expo-notifications",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#E5421A"
+        }
+      ],
       "@react-native-google-signin/google-signin"
     ],
     "extra": {

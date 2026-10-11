@@ -26,7 +26,7 @@ export default function ConectarPlaca() {
   const embutida = route.name !== 'ConectarPlaca';
   const { colors } = useTheme();
   const s = makeStyles(colors);
-  const { placas, criarPlaca, definirCapacidade, desconectarPlaca, atualizar } = usePlacas();
+  const { placas, criarPlaca, definirCapacidade, desconectarPlaca } = usePlacas();
 
   const [etapa, setEtapa] = useState('inicio'); // inicio | pareando | capacidade
   const [placaId, setPlacaId] = useState(null);
@@ -57,13 +57,15 @@ export default function ConectarPlaca() {
     ).start();
   }, []);
 
-  // Enquanto aguarda o pareamento: conta o tempo de validade do código e
-  // verifica periodicamente se a placa já confirmou a conexão.
+  // Enquanto aguarda o pareamento: conta o tempo de validade do código. A
+  // detecção de "a placa já confirmou" vem do poll de /placas que o
+  // PlacasContext já roda o tempo todo (ver efeito abaixo) — não precisa de
+  // um segundo poll só pra essa tela, o que só competiria pelo mesmo
+  // orçamento de rate limit sem ganhar nada em troca.
   useEffect(() => {
     if (etapa !== 'pareando') return;
-    const poll = setInterval(atualizar, 3000);
     const cronometro = setInterval(() => setRestante((r) => Math.max(0, r - 1)), 1000);
-    return () => { clearInterval(poll); clearInterval(cronometro); };
+    return () => clearInterval(cronometro);
   }, [etapa]);
 
   useEffect(() => {

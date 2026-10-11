@@ -7,7 +7,10 @@ const api = axios.create({
     timeout: 8000,
 });
 
-// Anexa o ID token do Firebase em toda requisição, exigido pelo middleware `autenticar` da API.
+// Cliente HTTP único do app para a API própria (DFS-backend), com o ID token
+// do Firebase anexado automaticamente — assim cada tela chama `api.get/post`
+// normalmente, sem buscar o token manualmente a cada requisição. Exigido
+// pelo middleware `autenticar` da API em quase todas as rotas.
 api.interceptors.request.use(async (config) => {
     if (auth.currentUser) {
         const token = await auth.currentUser.getIdToken();

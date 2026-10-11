@@ -1,3 +1,6 @@
+// Preferências de notificação e tema. "Alarme de chama"/"Alarme de gás" são
+// espelhadas no perfil do usuário e conferidas pelo backend antes do push
+// (ver CHAVE_NOTIFICACAO_BACKEND abaixo).
 import React, { useEffect, useState } from 'react';
 import { ScrollView, Switch, Text, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -5,24 +8,38 @@ import { useTheme } from '../css/theme';
 import makeStyles from '../css/styles';
 import { preferencias } from '../data/mock';
 import Screen from './Screen';
+import { useLogin } from '../context/LoginContext';
 
 const CHAVE_PREFS = '@dfs/preferencias-notificacao';
 
+const CHAVE_NOTIFICACAO_BACKEND = { p1: 'notifChama', p2: 'notifGas' };
+
 export default function Configuracoes() {
   const { colors, isDark, toggle } = useTheme();
+  const { salvarPreferenciaNotificacao } = useLogin();
   const s = makeStyles(colors);
   const [prefs, setPrefs] = useState(preferencias);
 
   useEffect(() => {
     AsyncStorage.getItem(CHAVE_PREFS)
-      .then((salvo) => { if (salvo) setPrefs(JSON.parse(salvo)); })
+      // Aplica só o `ligado` salvo, por id, sobre a lista atual — assim
+      // preferências antigas que saíram do app não voltam a aparecer.
+      .then((salvo) => {
+        if (!salvo) return;
+        const ligadoPorId = Object.fromEntries(JSON.parse(salvo).map((p) => [p.id, p.ligado]));
+        setPrefs(preferencias.map((p) => (p.id in ligadoPorId ? { ...p, ligado: ligadoPorId[p.id] } : p)));
+      })
       .catch(() => {});
   }, []);
 
   const alterna = (id) =>
     setPrefs((list) => {
-      const nova = list.map((p) => (p.id === id ? { ...p, ligado: !p.ligado } : p));
+      const atual = list.find((p) => p.id === id);
+      const novoValor = !atual.ligado;
+      const nova = list.map((p) => (p.id === id ? { ...p, ligado: novoValor } : p));
       AsyncStorage.setItem(CHAVE_PREFS, JSON.stringify(nova)).catch(() => {});
+      const chaveBackend = CHAVE_NOTIFICACAO_BACKEND[id];
+      if (chaveBackend) salvarPreferenciaNotificacao(chaveBackend, novoValor);
       return nova;
     });
 

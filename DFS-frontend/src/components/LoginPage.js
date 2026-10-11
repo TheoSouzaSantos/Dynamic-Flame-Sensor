@@ -3,17 +3,18 @@ import { Animated, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useLogin } from '../context/LoginContext';
+import { useAlertModal } from '../context/AlertModalContext';
 import { useTheme } from '../css/theme';
 import makeStyles from '../css/styles';
 import Screen from './Screen';
 
 export default function LoginPage() {
   const { Login, LoginGoogle, googlePronto } = useLogin();
+  const { alertar } = useAlertModal();
   const nav = useNavigation();
   const { colors } = useTheme();
   const s = makeStyles(colors);
 
-  const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [senhaVisible, setSenhaVisible] = useState(false);
@@ -30,17 +31,22 @@ export default function LoginPage() {
   }, []);
 
   async function EnviarLogin() {
-    if (nome.trim() === '' || email.trim() === '' || senha.trim() === '') return;
-    const success = await Login({ email, senha });
-    if (success) nav.navigate('App');
-    setNome(''); setEmail(''); setSenha('');
+    if (email.trim() === '' || senha.trim() === '') return;
+    const resultado = await Login({ email, senha });
+    if (resultado.ok) {
+      nav.navigate('App');
+    } else {
+      alertar('Erro ao entrar', resultado.error);
+    }
+    setEmail(''); setSenha('');
   }
 
   async function EntrarComGoogle() {
     setEntrandoComGoogle(true);
     try {
-      const success = await LoginGoogle();
-      if (success) nav.navigate('App');
+      const resultado = await LoginGoogle();
+      if (resultado.ok) nav.navigate('App');
+      else if (resultado.error) alertar('Erro ao entrar', resultado.error);
     } finally {
       setEntrandoComGoogle(false);
     }
@@ -65,9 +71,6 @@ export default function LoginPage() {
         </View>
 
         <View style={{ paddingHorizontal: 26, paddingTop: 26 }}>
-          <Field s={s} colors={colors} label="NOME" focused={focused === 'nome'}
-            onFocus={() => setFocused('nome')} onBlur={() => setFocused(null)}
-            value={nome} onChangeText={setNome} placeholder="Seu nome" />
           <Field s={s} colors={colors} label="E-MAIL" focused={focused === 'email'}
             onFocus={() => setFocused('email')} onBlur={() => setFocused(null)}
             value={email} onChangeText={setEmail} placeholder="seu@email.com"
@@ -82,7 +85,7 @@ export default function LoginPage() {
                   color={colors.textMuted} />
               </TouchableOpacity>
             } />
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => nav.navigate('EsqueciSenha')}>
             <Text style={{ marginTop: 4, fontSize: 12.5, fontWeight: '600', color: colors.flame }}>
               Esqueci minha senha
             </Text>

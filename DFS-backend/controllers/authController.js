@@ -3,6 +3,7 @@ const { verifySecret, hashSecret } = require('../utils/cryptoHash');
 const handleError = require('../utils/handleError');
 const tokenPlaca = require('../utils/signToken');
 const validarId = require('../utils/validarId');
+const commitEmChunks = require('../utils/chunkBatch');
 const { STATUS_PLACA } = require('../config/constants');
 
 /**
@@ -45,39 +46,49 @@ const login = async (req, res) => {
  */
 const provisionar = async (req, res) => {
     try {
-        const { pairCode, chipId, secretHash } = req.body;
-        if (!pairCode || !chipId || !secretHash) {
+        const { pairCode, chipId, secretHash } = req.body || {};
+        const camposValidos = typeof pairCode === 'string' && pairCode.length > 0 && pairCode.length <= 64
+            && typeof chipId === 'string' && chipId.length > 0 && chipId.length <= 64
+            && typeof secretHash === 'string' && /^[0-9a-f]{64}$/i.test(secretHash);
+        if (!camposValidos) {
             return res.status(400).json({ erro: 'Campos faltando' });
         }
 
-        const resultado = await db.collection('placas')
+        const consulta = db.collection('placas')
             .where('pairCodeHash', '==', hashSecret(pairCode))
-            .limit(1)
-            .get();
+            .limit(1);
 
-        if (resultado.empty) {
-            return res.status(404).json({ erro: 'Código não confere' });
-        }
+        // Transação: duas placas enviando o mesmo código ao mesmo tempo não
+        // podem ambas ver "aguardando" e ativar o mesmo documento.
+        const resultado = await db.runTransaction(async (tran) => {
+            const snapshot = await tran.get(consulta);
+            if (snapshot.empty) {
+                return { erro: 404, msg: 'Código não confere' };
+            }
 
-        const placaDoc = resultado.docs[0];
-        const placa = placaDoc.data();
+            const placaDoc = snapshot.docs[0];
+            const placa = placaDoc.data();
 
-        if (placa.status !== STATUS_PLACA.AGUARDANDO) {
-            return res.status(409).json({ erro: 'A placa já está sendo usada' });
-        }
-        if (placa.expiraEm <= Date.now()) {
-            return res.status(403).json({ erro: 'Código expirado' });
-        }
+            if (placa.status !== STATUS_PLACA.AGUARDANDO) {
+                return { erro: 409, msg: 'A placa já está sendo usada' };
+            }
+            if (placa.expiraEm <= Date.now()) {
+                return { erro: 403, msg: 'Código expirado' };
+            }
 
-        const placaId = placaDoc.id;
-        await placaDoc.ref.update({
-            chipId,
-            secretHash,
-            status: STATUS_PLACA.ATIVA,
-            ultimoBeat: 0,
+            tran.update(placaDoc.ref, {
+                chipId,
+                secretHash: secretHash.toLowerCase(),
+                status: STATUS_PLACA.ATIVA,
+                ultimoBeat: 0,
+            });
+            return { placaId: placaDoc.id };
         });
 
-        return res.status(200).json({ accessToken: tokenPlaca(placaId), placaId });
+        if (resultado.erro) {
+            return res.status(resultado.erro).json({ erro: resultado.msg });
+        }
+        return res.status(200).json({ accessToken: tokenPlaca(resultado.placaId), placaId: resultado.placaId });
     } catch (error) {
         handleError(res, error);
     }
@@ -98,19 +109,17 @@ const excluirConta = async (req, res) => {
         const placas = await db.collection('placas').where('userId', '==', uid).get();
         for (const placa of placas.docs) {
             const leituras = await db.collection('leituras').where('placaId', '==', placa.id).get();
-            const batch = db.batch();
-            leituras.docs.forEach((leitura) => batch.delete(leitura.ref));
-            batch.delete(placa.ref);
-            await batch.commit();
+            const operacoes = leituras.docs.map((leitura) => (batch) => batch.delete(leitura.ref));
+            operacoes.push((batch) => batch.delete(placa.ref));
+            await commitEmChunks(db, operacoes);
         }
 
         const sensores = await db.collection('sensores').where('userId', '==', uid).get();
         for (const sensor of sensores.docs) {
             const leituras = await db.collection('leituras').where('sensorId', '==', sensor.id).get();
-            const batch = db.batch();
-            leituras.docs.forEach((leitura) => batch.delete(leitura.ref));
-            batch.delete(sensor.ref);
-            await batch.commit();
+            const operacoes = leituras.docs.map((leitura) => (batch) => batch.delete(leitura.ref));
+            operacoes.push((batch) => batch.delete(sensor.ref));
+            await commitEmChunks(db, operacoes);
         }
 
         await db.collection('usuarios').doc(uid).delete();

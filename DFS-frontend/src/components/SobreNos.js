@@ -1,3 +1,4 @@
+// Tela estática "Sobre nós": créditos da equipe do projeto.
 import React from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { useTheme } from '../css/theme';
@@ -34,7 +35,7 @@ export default function SobreNos() {
 
         <View style={[s.card, { backgroundColor: colors.muted, marginTop: 14 }]}>
           <Text style={[s.body12, { lineHeight: 20 }]}>
-            Dynamic Flame Sensor · projeto de monitoramento de chama, gás e fumaça com placas ESP
+            Dynamic Flame Sensor · projeto de monitoramento de chama e gás com placas ESP32
             e aplicativo móvel.
           </Text>
         </View>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../css/theme';
@@ -7,14 +7,19 @@ import makeStyles from '../css/styles';
 import Screen from './Screen';
 import Stepper from './Stepper';
 import { usePlacas } from '../context/PlacasContext';
+import { useSensores } from '../context/SensoresContext';
+import { useAlertModal } from '../context/AlertModalContext';
 
 // Acessada a partir do Perfil — deixa o usuário escolher qual placa desconectar
-// (com confirmação) ou editar quantos sensores de cada tipo ela tem.
+// (com confirmação, no modal próprio abaixo) ou editar quantos sensores de
+// cada tipo ela tem.
 export default function GerenciarPlacas() {
   const nav = useNavigation();
   const { colors } = useTheme();
   const s = makeStyles(colors);
+  const { alertar } = useAlertModal();
   const { placas, desconectarPlaca, definirCapacidade } = usePlacas();
+  const { atualizar: atualizarSensores } = useSensores();
   const [selecionada, setSelecionada] = useState(null);
   const [desconectando, setDesconectando] = useState(false);
 
@@ -29,8 +34,13 @@ export default function GerenciarPlacas() {
     try {
       await desconectarPlaca(selecionada.id);
       setSelecionada(null);
+      // O backend já apagou (ou desvinculou) os sensores desta placa; busca a
+      // lista atualizada agora em vez de esperar o próximo poll de 10s, pra
+      // não deixar sensor já excluído na tela (ver SensoresContext).
+      atualizarSensores();
     } catch (error) {
       console.log('Erro ao desconectar placa:', error.message);
+      alertar('Erro ao desconectar', 'Não foi possível desconectar a placa agora. Tente novamente.');
     } finally {
       setDesconectando(false);
     }
@@ -50,7 +60,7 @@ export default function GerenciarPlacas() {
     } catch (error) {
       const dados = error.response && error.response.data;
       const msg = (dados && dados.erro) || 'Não foi possível salvar. Verifique se não há sensores demais cadastrados para o novo valor.';
-      Alert.alert('Erro ao salvar', msg);
+      alertar('Erro ao salvar', msg);
     } finally {
       setSalvando(false);
     }
@@ -106,8 +116,10 @@ export default function GerenciarPlacas() {
           <View style={s.modalSheet}>
             <Text style={s.subheading}>Desconectar placa</Text>
             <Text style={[s.body14, { marginTop: 10 }]}>
-              Tem certeza que deseja desconectar essa placa? Essa ação não pode ser desfeita e ela
-              precisará ser pareada novamente para voltar a enviar leituras.
+              Tem certeza que deseja desconectar essa placa? Essa ação não pode ser desfeita: os
+              sensores cadastrados nela (e todo o histórico de leituras) serão apagados
+              permanentemente, e ela precisará ser pareada novamente do zero para voltar a enviar
+              leituras.
             </Text>
             <View style={[s.row, { gap: 10, marginTop: 20 }]}>
               <TouchableOpacity style={[s.btnGhost, { flex: 1 }]} onPress={() => setSelecionada(null)}>

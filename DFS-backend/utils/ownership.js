@@ -39,7 +39,7 @@ const buscarLeiturasRecentes = async (campo, id, limite = LEITURAS_LIMITE_PADRAO
 
     return leituras.docs.map((doc) => {
         const d = doc.data();
-        return { estado: d.estado, valor: d.valor, serverTs: d.serverTs };
+        return { tipo: d.tipo, estado: d.estado, valor: d.valor, serverTs: d.serverTs };
     });
 };
 

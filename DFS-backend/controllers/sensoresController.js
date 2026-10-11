@@ -2,6 +2,7 @@ const { db } = require('../config/db');
 const handleError = require('../utils/handleError');
 const validarId = require('../utils/validarId');
 const sanitizarTexto = require('../utils/sanitizarTexto');
+const commitEmChunks = require('../utils/chunkBatch');
 const { buscarDocumentoDoUsuario, buscarLeiturasRecentes } = require('../utils/ownership');
 const { STATUS_PLACA, TIPO_SENSOR, ESTADO_LEITURA, LEITURAS_INTERVALO_REPETICAO_MS } = require('../config/constants');
 const axios = require('axios');
@@ -44,26 +45,24 @@ const listar = async (req, res) => {
 /**
  * Encontra, entre as placas ativas do usuário, a primeira com espaço livre
  * no canal informado (chama ou gás) e devolve o índice que o novo sensor
- * deve ocupar nela.
+ * deve ocupar nela — o menor índice livre entre 1 e a capacidade, já que
+ * excluir um sensor pode deixar um "buraco" no meio (ex.: 1 e 3 ocupados).
  * @param {FirebaseFirestore.QueryDocumentSnapshot[]} placasAtivas
  * @param {FirebaseFirestore.QueryDocumentSnapshot[]} sensoresDoCanal sensores do usuário que já usam esse canal
  * @param {'placaIdChama' | 'placaIdGas'} campoPlacaId
+ * @param {'indiceChama' | 'indiceGas'} campoIndice
  * @param {'capacidadeChama' | 'capacidadeGas'} campoCapacidade
  * @returns {{placaId: string, indice: number} | null} `null` quando não há saldo disponível
  */
-const alocarCanal = (placasAtivas, sensoresDoCanal, campoPlacaId, campoCapacidade) => {
-    const idsPlacasAtivas = new Set(placasAtivas.map((placa) => placa.id));
-    const sensoresEmUso = sensoresDoCanal.filter((sensor) => idsPlacasAtivas.has(sensor.data()[campoPlacaId]));
-
-    const capacidadeTotal = placasAtivas.reduce((soma, placa) => soma + placa.data()[campoCapacidade], 0);
-    if (capacidadeTotal - sensoresEmUso.length <= 0) {
-        return null;
-    }
-
+const alocarCanal = (placasAtivas, sensoresDoCanal, campoPlacaId, campoIndice, campoCapacidade) => {
     for (const placa of placasAtivas) {
-        const ocupados = sensoresEmUso.filter((sensor) => sensor.data()[campoPlacaId] === placa.id).length;
-        if (ocupados < placa.data()[campoCapacidade]) {
-            return { placaId: placa.id, indice: ocupados + 1 };
+        const indicesOcupados = new Set(sensoresDoCanal
+            .filter((sensor) => sensor.data()[campoPlacaId] === placa.id)
+            .map((sensor) => sensor.data()[campoIndice]));
+        for (let indice = 1; indice <= placa.data()[campoCapacidade]; indice++) {
+            if (!indicesOcupados.has(indice)) {
+                return { placaId: placa.id, indice };
+            }
         }
     }
     return null;
@@ -101,7 +100,7 @@ const criar = async (req, res) => {
 
             if (temChama) {
                 const sensoresChama = sensoresUser.filter((s) => s.data().tipoChama === true);
-                alocacaoChama = alocarCanal(placasAtivas, sensoresChama, 'placaIdChama', 'capacidadeChama');
+                alocacaoChama = alocarCanal(placasAtivas, sensoresChama, 'placaIdChama', 'indiceChama', 'capacidadeChama');
                 if (!alocacaoChama) {
                     return { erro: 409, msg: 'Saldo Insuficiente' };
                 }
@@ -109,7 +108,7 @@ const criar = async (req, res) => {
 
             if (temGas) {
                 const sensoresGas = sensoresUser.filter((s) => s.data().tipoGas === true);
-                alocacaoGas = alocarCanal(placasAtivas, sensoresGas, 'placaIdGas', 'capacidadeGas');
+                alocacaoGas = alocarCanal(placasAtivas, sensoresGas, 'placaIdGas', 'indiceGas', 'capacidadeGas');
                 if (!alocacaoGas) {
                     return { erro: 409, msg: 'Saldo Insuficiente' };
                 }
@@ -175,6 +174,13 @@ const atualizar = async (req, res) => {
         }
         if (typeof sensorBody.ativo === 'boolean') {
             dadosAtualizados.ativo = sensorBody.ativo;
+            // Desativado, o sensor para de receber leituras (ver
+            // registrarLeitura). Zerar o estado evita que ele volte com um
+            // alerta antigo ao ser reativado — a próxima leitura real o corrige.
+            if (!sensorBody.ativo) {
+                dadosAtualizados.estadoChama = ESTADO_LEITURA.SEGURO;
+                dadosAtualizados.estadoGas = ESTADO_LEITURA.SEGURO;
+            }
         }
 
         if (Object.keys(dadosAtualizados).length === 0) {
@@ -182,6 +188,36 @@ const atualizar = async (req, res) => {
         }
 
         await dono.snapshot.ref.update(dadosAtualizados);
+        return res.status(200).json({ ok: true });
+    } catch (error) {
+        handleError(res, error);
+    }
+};
+
+/**
+ * DELETE /sensores/:id — exclui um sensor do próprio usuário junto com as
+ * leituras dele, liberando o canal que ele ocupava na placa.
+ */
+const excluir = async (req, res) => {
+    try {
+        if (!req.usuario) {
+            return res.status(403).json({ erro: 'A requisição deve ser feita por um usuário' });
+        }
+        const idSensor = req.params.id;
+        if (!validarId(idSensor)) {
+            return res.status(400).json({ erro: 'ID inválido' });
+        }
+
+        const dono = await buscarDocumentoDoUsuario(db.collection('sensores'), idSensor, req.usuario.uid, MSG_SENSOR_NAO_EXISTE);
+        if (!dono.ok) {
+            return res.status(dono.status).json({ erro: dono.erro });
+        }
+
+        const leituras = await db.collection('leituras').where('sensorId', '==', idSensor).get();
+        const operacoes = leituras.docs.map((leitura) => (batch) => batch.delete(leitura.ref));
+        operacoes.push((batch) => batch.delete(dono.snapshot.ref));
+        await commitEmChunks(db, operacoes);
+
         return res.status(200).json({ ok: true });
     } catch (error) {
         handleError(res, error);
@@ -264,6 +300,13 @@ const registrarLeitura = async (req, res) => {
         }
         const sensorDoc = sensorSnapshot.docs[0];
 
+        // Sensor desativado pelo usuário: a placa continua viva (ultimoBeat
+        // já foi atualizado acima), mas a leitura não entra no histórico nem
+        // gera notificação — é o que o app promete ao desativar.
+        if (sensorDoc.data().ativo === false) {
+            return res.status(200).json({ mensagem: 'Sensor desativado' });
+        }
+
         const ultimoEstado = sensorDoc.data()[campoEstado] ?? ESTADO_LEITURA.SEGURO;
         const timestampAnterior = sensorDoc.data()[campoUltimaLeitura]?.serverTs ?? 0;
         const passouIntervalo = (Date.now() - timestampAnterior) > LEITURAS_INTERVALO_REPETICAO_MS;
@@ -290,7 +333,12 @@ const registrarLeitura = async (req, res) => {
                     if(userSnap.exists){
                         const userDoc = userSnap.data();
                         const pushToken = userDoc.pushToken;
-                        if(pushToken){
+                        // notifChama/notifGas ausentes (usuário nunca alterou a
+                        // preferência) contam como ativado, pra não silenciar
+                        // quem já usava o app antes dessa preferência existir.
+                        const preferenciaDesativada = (estado === 'chama' && userDoc.notifChama === false)
+                            || (estado === 'gas' && userDoc.notifGas === false);
+                        if(pushToken && !preferenciaDesativada){
                             const corpoNotificacao = {};
                             switch (estado) {
                                 case "chama":
@@ -314,8 +362,13 @@ const registrarLeitura = async (req, res) => {
                                 title: corpoNotificacao.titulo,
                                 body: corpoNotificacao.body,
                                 sound: 'default',
+                                // Sem prioridade alta, o Android pode segurar a
+                                // notificação enquanto o celular está em modo
+                                // de economia (Doze). O canal é o criado pelo
+                                // app (LoginContext), com importância MAX.
+                                priority: 'high',
+                                channelId: 'default',
                                 data: {sensorId: sensorDoc.id}
-                                
                             });
                         }
                     }
@@ -331,4 +384,4 @@ const registrarLeitura = async (req, res) => {
     }
 };
 
-module.exports = { listar, criar, atualizar, listarLeituras, registrarLeitura };
+module.exports = { listar, criar, atualizar, excluir, listarLeituras, registrarLeitura };

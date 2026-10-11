@@ -4,7 +4,7 @@ import api from '../../services/api';
 import { useLogin } from './LoginContext';
 
 const SensoresContext = createContext();
-const INTERVALO_POLLING = 4000;
+const INTERVALO_POLLING = 10000;
 
 // "Sensor" aqui é uma entidade lógica (nome, cômodo, tipo), presa a um canal
 // específico de uma placa conectada — o estado (estadoChama/estadoGas) vem
@@ -77,14 +77,21 @@ export function SensoresProvider({ children }) {
         await atualizar();
     }
 
-    async function buscarLeituras(id) {
+    // Remove o sensor e as leituras dele, liberando o canal na placa.
+    async function excluirSensor(id) {
+        await api.delete(`/sensores/${id}`);
+        await atualizar();
+    }
+
+    // useCallback: o Histórico usa esta função como dependência de efeito.
+    const buscarLeituras = useCallback(async (id) => {
         const { data } = await api.get(`/sensores/${id}/leituras`);
         return data || [];
-    }
+    }, []);
 
     return (
         <SensoresContext.Provider value={{
-            sensores, carregando, atualizar, criarSensor, atualizarSensor, buscarLeituras,
+            sensores, carregando, atualizar, criarSensor, atualizarSensor, excluirSensor, buscarLeituras,
         }}>
             {children}
         </SensoresContext.Provider>

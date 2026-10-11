@@ -1,10 +1,7 @@
-// Preferências de notificação — ainda não existe endpoint na API para isso,
-// então ficam como estado local do app.
+// Preferências de notificação. Cada uma é espelhada no perfil do usuário
+// (ver Configuracoes.js) e conferida pelo backend antes de enviar o push.
 
 export const preferencias = [
-  { id: 'p1', titulo: 'Alarme de chama', dica: 'Notificação crítica, ignora o modo silencioso', ligado: true },
-  { id: 'p2', titulo: 'Alarme de gás', dica: 'Notificação crítica com som contínuo', ligado: true },
-  { id: 'p3', titulo: 'Sensor offline', dica: 'Aviso quando uma placa para de responder', ligado: false },
-  { id: 'p4', titulo: 'Resumo diário', dica: 'Uma vez por dia, às 8h', ligado: true },
-  { id: 'p5', titulo: 'Vibração', dica: 'Junto com o som do alarme', ligado: true },
+  { id: 'p1', titulo: 'Alarme de chama', dica: 'Notificação de alta prioridade quando um sensor detecta chama', ligado: true },
+  { id: 'p2', titulo: 'Alarme de gás', dica: 'Notificação de alta prioridade quando um sensor detecta gás', ligado: true },
 ];

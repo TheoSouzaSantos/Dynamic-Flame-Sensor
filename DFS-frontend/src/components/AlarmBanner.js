@@ -4,7 +4,7 @@ import { useTheme } from '../css/theme';
 import makeStyles from '../css/styles';
 
 // Faixa de alarme que desce do topo. Usada no Início e no Painel.
-export default function AlarmBanner({ comodo = 'Cozinha', quando = 'há 4 segundos', onSilenciar }) {
+export default function AlarmBanner({ comodo, quando, onSilenciar }) {
   const { colors } = useTheme();
   const s = makeStyles(colors);
   const slide = useRef(new Animated.Value(-60)).current;
@@ -30,7 +30,7 @@ export default function AlarmBanner({ comodo = 'Cozinha', quando = 'há 4 segund
       </Animated.View>
       <View style={{ flex: 1 }}>
         <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Chama detectada</Text>
-        <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 12.5 }}>{comodo} · {quando}</Text>
+        <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 12.5 }}>{comodo}{quando ? ` · ${quando}` : ''}</Text>
       </View>
       <TouchableOpacity onPress={onSilenciar} style={{ minHeight: 36, paddingHorizontal: 12,
         justifyContent: 'center', borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.16)' }}>

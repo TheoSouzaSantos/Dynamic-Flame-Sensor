@@ -4,7 +4,7 @@ import api from '../../services/api';
 import { useLogin } from './LoginContext';
 
 const PlacasContext = createContext();
-const INTERVALO_POLLING = 4000;
+const INTERVALO_POLLING = 10000;
 
 // Normaliza o documento vindo de GET /placas. capacidadeChama/capacidadeGas
 // dependem de campos que ainda precisam ser adicionados na API — ver aviso

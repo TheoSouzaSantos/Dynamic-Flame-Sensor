@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../css/theme';
@@ -7,9 +7,10 @@ import makeStyles from '../css/styles';
 import Screen from './Screen';
 import SensorIcon from './SensorIcon';
 import { useSensores } from '../context/SensoresContext';
+import { useAlertModal } from '../context/AlertModalContext';
 import { estadoDoSensor } from '../utils/estadoSensor';
+import { tempoRelativo } from '../utils/tempoRelativo';
 
-const INTERVALO_LEITURA = 30;
 const ROTULOS = { chama: 'Chama', gas: 'Gás', seguro: 'Seguro' };
 
 function CampoEditavel({ s, colors, valor, placeholder, onSalvar }) {
@@ -54,22 +55,13 @@ export default function SensorDetalhe() {
   const { params } = useRoute();
   const { colors } = useTheme();
   const s = makeStyles(colors);
-  const { sensores, atualizar, atualizarSensor } = useSensores();
+  const { sensores, atualizarSensor, excluirSensor } = useSensores();
+  const { alertar, confirmar } = useAlertModal();
 
   const sensor = sensores.find((sn) => sn.id === params.sensorId);
 
-  const [contagem, setContagem] = useState(INTERVALO_LEITURA);
   const [desativando, setDesativando] = useState(false);
-
-  useEffect(() => {
-    const cronometro = setInterval(() => {
-      setContagem((c) => {
-        if (c <= 1) { atualizar(); return INTERVALO_LEITURA; }
-        return c - 1;
-      });
-    }, 1000);
-    return () => clearInterval(cronometro);
-  }, [atualizar]);
+  const [excluindo, setExcluindo] = useState(false);
 
   if (!sensor) {
     return (
@@ -91,22 +83,40 @@ export default function SensorDetalhe() {
     : ultimaLeitura === sensor.ultimaLeituraGas ? 'gas' : null;
 
   async function desativarSensor() {
-    Alert.alert('Desativar sensor', `Tem certeza que deseja desativar "${sensor.nome}"? Ele para de gerar alertas até ser reativado.`, [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Desativar', style: 'destructive', onPress: async () => {
-          setDesativando(true);
-          try {
-            await atualizarSensor(sensor.id, { ativo: false });
-            nav.goBack();
-          } catch (error) {
-            Alert.alert('Erro', 'Não foi possível desativar o sensor agora.');
-          } finally {
-            setDesativando(false);
-          }
-        },
-      },
-    ]);
+    const confirmado = await confirmar(
+      'Desativar sensor',
+      `Tem certeza que deseja desativar "${sensor.nome}"? Ele para de gerar alertas até ser reativado.`,
+      { destrutivo: true, textoConfirmar: 'Desativar' },
+    );
+    if (!confirmado) return;
+
+    setDesativando(true);
+    try {
+      await atualizarSensor(sensor.id, { ativo: false });
+      nav.goBack();
+    } catch (error) {
+      alertar('Erro', 'Não foi possível desativar o sensor agora.');
+    } finally {
+      setDesativando(false);
+    }
+  }
+
+  async function excluir() {
+    const confirmado = await confirmar(
+      'Excluir sensor',
+      `Tem certeza que deseja excluir "${sensor.nome}"? O histórico dele será apagado e o canal fica livre para outro sensor.`,
+      { destrutivo: true, textoConfirmar: 'Excluir' },
+    );
+    if (!confirmado) return;
+
+    setExcluindo(true);
+    try {
+      await excluirSensor(sensor.id);
+      nav.goBack();
+    } catch (error) {
+      alertar('Erro', 'Não foi possível excluir o sensor agora.');
+      setExcluindo(false);
+    }
   }
 
   async function reativarSensor() {
@@ -114,7 +124,7 @@ export default function SensorDetalhe() {
     try {
       await atualizarSensor(sensor.id, { ativo: true });
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível reativar o sensor agora.');
+      alertar('Erro', 'Não foi possível reativar o sensor agora.');
     } finally {
       setDesativando(false);
     }
@@ -170,17 +180,16 @@ export default function SensorDetalhe() {
           {ultimaLeitura ? (
             <View style={s.rowBetween}>
               <View>
+                {/* Chama é digital (0/1): mostra o estado. Gás é analógico:
+                    mostra o valor lido pelo MQ-2. */}
                 <Text style={{ fontFamily: 'Georgia', fontSize: 26, color: colors.textPrimary }}>
-                  {ultimaLeitura.valor}
+                  {tipoUltimaLeitura === 'gas' ? ultimaLeitura.valor : ROTULOS[sensor.estadoChama] || 'Seguro'}
                 </Text>
                 <Text style={[s.body12, { marginTop: 4 }]}>
                   {ROTULOS[tipoUltimaLeitura] || tipoUltimaLeitura} · {new Date(ultimaLeitura.serverTs).toLocaleTimeString('pt-BR')}
                 </Text>
               </View>
-              <View style={{ alignItems: 'center' }}>
-                <Text style={[s.mono, { fontSize: 18 }]}>{contagem}s</Text>
-                <Text style={[s.body12, { fontSize: 10 }]}>próxima leitura</Text>
-              </View>
+              <Text style={[s.body12, { fontSize: 11 }]}>{tempoRelativo(ultimaLeitura.serverTs)}</Text>
             </View>
           ) : (
             <Text style={s.body14}>Nenhuma leitura registrada ainda.</Text>
@@ -198,6 +207,11 @@ export default function SensorDetalhe() {
             <Text style={s.btnPrimaryText}>{desativando ? 'Reativando...' : 'Reativar sensor'}</Text>
           </TouchableOpacity>
         )}
+
+        <TouchableOpacity style={[s.btnGhost, { opacity: excluindo ? 0.6 : 1 }]}
+          disabled={excluindo} onPress={excluir}>
+          <Text style={[s.btnGhostText, { color: colors.flame }]}>{excluindo ? 'Excluindo...' : 'Excluir sensor'}</Text>
+        </TouchableOpacity>
       </ScrollView>
     </Screen>
   );

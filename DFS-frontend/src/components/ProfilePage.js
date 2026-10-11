@@ -1,18 +1,23 @@
+// Tela de perfil: resumo da conta, acesso a Placas/Configurações, e as
+// ações de sair ou excluir a conta.
 import React from 'react';
-import { Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useLogin } from '../context/LoginContext';
 import { usePlacas } from '../context/PlacasContext';
 import { useSensores } from '../context/SensoresContext';
+import { useAlertModal } from '../context/AlertModalContext';
 import { useTheme } from '../css/theme';
 import makeStyles from '../css/styles';
 import Screen from './Screen';
+import { contarPlacasOffline } from '../utils/placaOffline';
 
 export default function ProfilePage() {
   const nav = useNavigation();
   const { user, sair, Deletar } = useLogin();
   const { placas } = usePlacas();
   const { sensores } = useSensores();
+  const { alertar, confirmar } = useAlertModal();
   const { colors } = useTheme();
   const s = makeStyles(colors);
 
@@ -20,21 +25,30 @@ export default function ProfilePage() {
   const email = (user && user.email) || '';
   const iniciais = nome.split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase();
   const cômodos = new Set(sensores.filter((sn) => sn.comodo).map((sn) => sn.comodo));
-  const offline = placas.filter((p) => Date.now() - p.ultimoBeat > 5 * 60 * 1000).length;
+  const offline = contarPlacasOffline(placas);
 
   const LINHAS = [
+    { titulo: 'Editar perfil', meta: 'Nome, e-mail e senha',
+      onPress: () => nav.navigate('EditarPage') },
     { titulo: 'Placas e conexão', meta: `${placas.length} placa${placas.length === 1 ? '' : 's'} conectada${placas.length === 1 ? '' : 's'}`,
       onPress: () => nav.navigate('GerenciarPlacas') },
     { titulo: 'Configurações', meta: 'Notificações, aparência e preferências do app',
       onPress: () => nav.navigate('Configurações') },
   ];
 
-  const AtivaSair = () => { sair(); nav.navigate('Intro'); };
-  const DeletaUsuario = () =>
-    Alert.alert('Excluir conta', 'Essa ação não pode ser desfeita.', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Excluir', style: 'destructive', onPress: async () => { await Deletar(); nav.navigate('Intro'); } },
-    ]);
+  // sair() é assíncrono (limpa o pushToken antes do signOut); a tela não
+  // precisa esperar por isso pra voltar à Intro.
+  const AtivaSair = () => { nav.navigate('Intro'); sair(); };
+  const DeletaUsuario = async () => {
+    const confirmado = await confirmar('Excluir conta', 'Essa ação não pode ser desfeita.', {
+      destrutivo: true, textoConfirmar: 'Excluir',
+    });
+    if (!confirmado) return;
+
+    const sucesso = await Deletar();
+    if (sucesso) nav.navigate('Intro');
+    else alertar('Erro', 'Não foi possível excluir sua conta agora. Tente novamente.');
+  };
 
   return (
     <Screen style={s.screen} edges={['bottom']}>
@@ -70,20 +84,24 @@ export default function ProfilePage() {
             </TouchableOpacity>
           ))}
         </View>
-      </ScrollView>
 
-      <View style={[s.row, { gap: 8, paddingHorizontal: 20, paddingVertical: 18 }]}>
-        <TouchableOpacity style={[s.btnGhost, { flex: 1, minHeight: 48 }]}
-          onPress={() => nav.navigate('EditarPage')}>
-          <Text style={[s.btnGhostText, { fontSize: 13 }]}>Editar</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[s.btnGhost, { flex: 1, minHeight: 48 }]} onPress={AtivaSair}>
-          <Text style={[s.btnGhostText, { fontSize: 13 }]}>Sair</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[s.btnDanger, { flex: 1 }]} onPress={DeletaUsuario}>
-          <Text style={s.btnDangerText}>Excluir</Text>
-        </TouchableOpacity>
-      </View>
+        <View style={{ paddingHorizontal: 20, paddingTop: 20 }}>
+          <TouchableOpacity style={s.btnGhost} onPress={AtivaSair}>
+            <Text style={s.btnGhostText}>Sair da conta</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={{ paddingHorizontal: 20, paddingTop: 28, paddingBottom: 24 }}>
+          <View style={s.divider} />
+          <Text style={[s.label, { marginBottom: 4 }]}>ZONA DE RISCO</Text>
+          <Text style={[s.body12, { marginBottom: 12 }]}>
+            Excluir sua conta remove seus dados de acesso permanentemente. Essa ação não pode ser desfeita.
+          </Text>
+          <TouchableOpacity style={s.btnDanger} onPress={DeletaUsuario}>
+            <Text style={s.btnDangerText}>Excluir conta</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
     </Screen>
   );
 }
