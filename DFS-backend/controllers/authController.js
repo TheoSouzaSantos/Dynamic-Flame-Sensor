@@ -46,7 +46,13 @@ const login = async (req, res) => {
  */
 const provisionar = async (req, res) => {
     try {
-        const { pairCode, chipId, secretHash } = req.body || {};
+        const { chipId, secretHash } = req.body || {};
+        // O código é digitado à mão no portal da placa: tolera minúsculas
+        // (teclado do celular) e espaços nas pontas. O alfabeto só tem
+        // maiúsculas, então isso não cria colisão entre códigos.
+        const pairCode = typeof req.body?.pairCode === 'string'
+            ? req.body.pairCode.trim().toUpperCase()
+            : req.body?.pairCode;
         const camposValidos = typeof pairCode === 'string' && pairCode.length > 0 && pairCode.length <= 64
             && typeof chipId === 'string' && chipId.length > 0 && chipId.length <= 64
             && typeof secretHash === 'string' && /^[0-9a-f]{64}$/i.test(secretHash);

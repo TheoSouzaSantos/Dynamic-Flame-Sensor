@@ -24,6 +24,9 @@ export default function ConectarPlaca() {
   const nav = useNavigation();
   const route = useRoute();
   const embutida = route.name !== 'ConectarPlaca';
+  // Embutida, o header do drawer já ocupa o topo; como modal (sem header),
+  // a tela precisa da área segura de cima também (relógio/câmera).
+  const edges = embutida ? ['bottom'] : ['top', 'bottom'];
   const { colors } = useTheme();
   const s = makeStyles(colors);
   const { placas, criarPlaca, definirCapacidade, desconectarPlaca } = usePlacas();
@@ -141,7 +144,7 @@ export default function ConectarPlaca() {
 
   if (etapa === 'capacidade') {
     return (
-      <Screen style={s.screen} edges={['bottom']}>
+      <Screen style={s.screen} edges={edges}>
         <View style={{ paddingHorizontal: 20, paddingTop: 22 }}>
           <Text style={s.kicker}>PLACA CONECTADA</Text>
           <Text style={[s.title, { marginTop: 10 }]}>Quantos sensores ela tem?</Text>
@@ -176,7 +179,7 @@ export default function ConectarPlaca() {
 
   if (etapa === 'pareando') {
     return (
-      <Screen style={s.screen} edges={['bottom']}>
+      <Screen style={s.screen} edges={edges}>
         <View style={{ paddingHorizontal: 20, paddingTop: 22 }}>
           <Text style={s.kicker}>CONECTAR PLACA</Text>
           <Text style={[s.title, { marginTop: 10 }]}>Ligue a placa e conecte o Wi-Fi</Text>
@@ -240,7 +243,7 @@ export default function ConectarPlaca() {
   }
 
   return (
-    <Screen style={[s.screen, { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 30 }]} edges={['bottom']}>
+    <Screen style={[s.screen, { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 30 }]} edges={edges}>
       <View style={{ width: 148, height: 148, alignItems: 'center', justifyContent: 'center' }}>
         <Animated.View style={{ position: 'absolute', width: 148, height: 148, borderRadius: 74,
           backgroundColor: colors.muted, transform: [{ scale }] }} />

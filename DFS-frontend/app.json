@@ -19,7 +19,7 @@
       "googleServicesFile": "./google-services.json"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/DFS-icon-no-background.png"
     },
     "plugins": [
       "expo-font",
@@ -30,6 +30,15 @@
         {
           "icon": "./assets/notification-icon.png",
           "color": "#E5421A"
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/DFS-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#000000"
         }
       ],
       "@react-native-google-signin/google-signin"

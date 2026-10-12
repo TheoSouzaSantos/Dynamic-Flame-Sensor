@@ -29,6 +29,14 @@ const ESTADO_LEITURA = Object.freeze({
 /** Tamanho (em caracteres) do código de pareamento gerado para novas placas. */
 const PAIR_CODE_TAMANHO = 8;
 
+/**
+ * Caracteres usados no código de pareamento. O código é digitado à mão no
+ * portal da placa, então fica só com maiúsculas e números, sem `_`/`-` e sem
+ * os pares fáceis de confundir (0/O, 1/I/L). 31 símbolos × 8 posições ≈ 40
+ * bits — suficiente para um código que expira em 10 min e tem rate limit.
+ */
+const PAIR_CODE_ALFABETO = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
+
 /** Tempo de validade do código de pareamento antes de expirar. */
 const PAIR_CODE_VALIDADE_MS = 10 * 60 * 1000;
 
@@ -49,6 +57,7 @@ module.exports = {
     TIPO_SENSOR,
     ESTADO_LEITURA,
     PAIR_CODE_TAMANHO,
+    PAIR_CODE_ALFABETO,
     PAIR_CODE_VALIDADE_MS,
     TOKEN_PLACA_EXPIRA_EM,
     CAPACIDADE_MAXIMA_SENSORES,

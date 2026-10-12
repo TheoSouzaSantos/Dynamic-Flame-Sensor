@@ -1,17 +1,19 @@
-const { nanoid } = require('nanoid');
+const { customAlphabet } = require('nanoid');
 const { db } = require('../config/db');
 const handleError = require('../utils/handleError');
 const validarId = require('../utils/validarId');
 const { hashSecret } = require('../utils/cryptoHash');
 const commitEmChunks = require('../utils/chunkBatch');
 const { buscarDocumentoDoUsuario, buscarLeiturasRecentes } = require('../utils/ownership');
-const { STATUS_PLACA, ESTADO_LEITURA, PAIR_CODE_TAMANHO, PAIR_CODE_VALIDADE_MS, CAPACIDADE_MAXIMA_SENSORES } = require('../config/constants');
+const { STATUS_PLACA, ESTADO_LEITURA, PAIR_CODE_TAMANHO, PAIR_CODE_ALFABETO, PAIR_CODE_VALIDADE_MS, CAPACIDADE_MAXIMA_SENSORES } = require('../config/constants');
 
 const MSG_PLACA_NAO_EXISTE = 'A placa não existe';
 
+const novoPairCode = customAlphabet(PAIR_CODE_ALFABETO, PAIR_CODE_TAMANHO);
+
 /** Gera um novo pairCode e sua janela de validade, prontos para gravar no Firestore. */
 const gerarPairCode = () => ({
-    pairCode: nanoid(PAIR_CODE_TAMANHO),
+    pairCode: novoPairCode(),
     expiraEm: Date.now() + PAIR_CODE_VALIDADE_MS,
 });
 
