@@ -49,13 +49,16 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    Animated.loop(
+    if (reduzirMovimento) { breathe.setValue(0); return; }
+    const animBreathe = Animated.loop(
       Animated.sequence([
         Animated.timing(breathe, { toValue: 1, duration: 2100, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
         Animated.timing(breathe, { toValue: 0, duration: 2100, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
       ])
-    ).start();
-  }, []);
+    );
+    animBreathe.start();
+    return () => { animBreathe.stop(); };
+  }, [reduzirMovimento]);
 
   const carregando = carregandoPlacas || carregandoSensores;
   const atualizar = () => { atualizarPlacas(); atualizarSensores(); };
@@ -64,12 +67,14 @@ export default function Home() {
   const sensoresComEstado = sensores.map((sn) => ({ ...sn, estado: estadoDoSensor(sn) }));
   const { emChama, emGas, mostrarBannerChama, mostrarBannerGas, silenciarChama, silenciarGas } = useAlarmes(sensoresComEstado);
   const alerta = emChama || emGas;
+  const alertaComMovimento = alerta && !reduzirMovimento;
 
   // Fogo consumindo o indicador: brilho tremulando sob a chama (ilustração
   // Lottie — ver JSX abaixo), com brasas subindo em zigue-zague e fumaça mais
-  // lenta por cima. Gás se espalhando: vapor/bolhas (outra ilustração Lottie)
-  // com anéis que se expandem do centro por cima. Cada grupo de loops só
-  // roda enquanto o respectivo alerta estiver ativo.
+  // lenta por cima. Gás se espalhando: vapor/bolhas (outra ilustração Lottie).
+  // Os anéis que se expandem do centro são compartilhados por chama e gás
+  // (cor conforme o alerta ativo). Cada grupo de loops só roda enquanto o
+  // respectivo alerta estiver ativo.
   useEffect(() => {
     if (!emChama || !appAtivo) { flicker.setValue(0); rise.setValue(0); smoke.setValue(0); return; }
     const animFlicker = Animated.loop(
@@ -91,13 +96,13 @@ export default function Home() {
   }, [!!emChama, appAtivo]);
 
   useEffect(() => {
-    if (!emGas || !appAtivo) { spread.setValue(0); return; }
+    if (!alertaComMovimento || !appAtivo) { spread.setValue(0); return; }
     const animSpread = Animated.loop(
       Animated.timing(spread, { toValue: 1, duration: 1800, easing: Easing.out(Easing.ease), useNativeDriver: true })
     );
     animSpread.start();
     return () => { animSpread.stop(); };
-  }, [!!emGas, appAtivo]);
+  }, [alertaComMovimento, appAtivo]);
 
   // 5 brasas espaçadas igualmente em fase (0, .2, .4, .6, .8) em vez de 3 —
   // mais faíscas subindo ao mesmo tempo, cada uma em um ponto do ciclo.
@@ -130,10 +135,10 @@ export default function Home() {
             <Animated.View style={{ position: 'absolute', width: 188, height: 188, borderRadius: 94,
               backgroundColor: emChama ? colors.flameBg : emGas ? colors.gasBg : colors.muted, transform: [{ scale }] }} />
 
-            {emGas && !reduzirMovimento && [spread, spreadFase2, spreadFase3].map((fase, i) => (
+            {alertaComMovimento && [spread, spreadFase2, spreadFase3].map((fase, i) => (
               <Animated.View key={i} pointerEvents="none" style={{
                 position: 'absolute', width: 188, height: 188, borderRadius: 94,
-                borderWidth: [2, 1.5, 2.5][i], borderColor: colors.gas,
+                borderWidth: [2, 1.5, 2.5][i], borderColor: emChama ? colors.flame : colors.gas,
                 opacity: fase.interpolate({ inputRange: [0, 1], outputRange: [[0.5, 0], [0.38, 0], [0.56, 0.04]][i] }),
                 transform: [{ scale: fase.interpolate({ inputRange: [0, 1], outputRange: [[0.55, 1.25], [0.6, 1.4], [0.5, 1.15]][i] }) }],
               }} />

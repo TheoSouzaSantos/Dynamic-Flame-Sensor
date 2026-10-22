@@ -112,6 +112,12 @@ const excluirConta = async (req, res) => {
         }
         const uid = req.usuario.uid;
 
+        // Apaga o usuário do Firebase Auth primeiro: se a limpeza do
+        // Firestore abaixo falhar depois disso, a conta já não tem mais
+        // login possível (dados órfãos recuperáveis, não uma conta
+        // "quebrada" em que o usuário ainda conseguiria entrar).
+        await auth.deleteUser(uid);
+
         const placas = await db.collection('placas').where('userId', '==', uid).get();
         for (const placa of placas.docs) {
             const leituras = await db.collection('leituras').where('placaId', '==', placa.id).get();
@@ -129,7 +135,6 @@ const excluirConta = async (req, res) => {
         }
 
         await db.collection('usuarios').doc(uid).delete();
-        await auth.deleteUser(uid);
 
         return res.status(200).json({ ok: true });
     } catch (error) {

@@ -59,7 +59,16 @@ export function LoginProvider({children}) {
                 }
 
                 const referenciadoc = doc(db, "usuarios", credencial.uid);
-                const verdoc = await getDoc(referenciadoc);
+                // getDoc isolado: uma falha transitória aqui (sem rede, erro
+                // momentâneo do Firestore) não pode derrubar a sessão válida
+                // que o Firebase Auth já restaurou — só o nome do perfil fica
+                // temporariamente indisponível.
+                let verdoc;
+                try {
+                    verdoc = await getDoc(referenciadoc);
+                } catch (error) {
+                    console.log('Erro ao buscar perfil na restauração de sessão:', error.message);
+                }
 
                 // Editar() só troca o e-mail no Firebase Auth (via
                 // verifyBeforeUpdateEmail — o documento Firestore não é
@@ -68,7 +77,7 @@ export function LoginProvider({children}) {
                 // divergir do que está salvo aqui, sincroniza agora —
                 // cobrindo tanto a confirmação do link quanto qualquer outra
                 // forma de o e-mail do Auth ter mudado.
-                if (verdoc.exists() && verdoc.data().email !== credencial.email) {
+                if (verdoc && verdoc.exists() && verdoc.data().email !== credencial.email) {
                     setDoc(referenciadoc, { email: credencial.email }, { merge: true }).catch((error) => {
                         console.log('Erro ao sincronizar e-mail:', error.message);
                     });
@@ -76,7 +85,7 @@ export function LoginProvider({children}) {
 
                 setUser({
                     id: credencial.uid,
-                    nome: verdoc.exists() ? verdoc.data().nome : '',
+                    nome: verdoc && verdoc.exists() ? verdoc.data().nome : '',
                     email: credencial.email
                 });
                 try{

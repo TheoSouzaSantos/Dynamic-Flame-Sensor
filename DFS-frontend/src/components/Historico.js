@@ -30,10 +30,16 @@ export default function Historico() {
   const carregar = useCallback(async () => {
     setCarregando(true);
     try {
-      const listas = await Promise.all(sensoresRef.current.map(async (sn) => {
+      const resultados = await Promise.allSettled(sensoresRef.current.map(async (sn) => {
         const leituras = await buscarLeituras(sn.id);
         return leituras.map((l) => ({ ...l, sensor: sn.nome, comodo: sn.comodo }));
       }));
+      // allSettled em vez de all: um sensor estourando o rate limit não pode
+      // descartar as leituras dos demais que tiveram sucesso.
+      const listas = resultados.filter((r) => {
+        if (r.status === 'rejected') console.log('Erro ao buscar histórico de um sensor:', r.reason?.message);
+        return r.status === 'fulfilled';
+      }).map((r) => r.value);
       const combinado = listas.flat().sort((a, b) => b.serverTs - a.serverTs).slice(0, 40);
       setEventos(combinado);
     } catch (error) {

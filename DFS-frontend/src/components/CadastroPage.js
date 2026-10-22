@@ -51,12 +51,12 @@ export default function CadastroPage() {
     if (!cadastroHabilitado) return;
     const resultado = await Cadastro({ nome, email, senha });
     if (resultado.ok) {
+      setNome(''); setEmail(''); setSenha('');
       alertar('Conta criada!', 'Bem-vindo ao Dynamic Sensor.', { tipo: 'sucesso' });
       nav.navigate('App');
     } else {
       alertar('Erro', resultado.error);
     }
-    setNome(''); setEmail(''); setSenha('');
   }
 
   async function CriarContaComGoogle() {

@@ -34,11 +34,11 @@ export default function LoginPage() {
     if (email.trim() === '' || senha.trim() === '') return;
     const resultado = await Login({ email, senha });
     if (resultado.ok) {
+      setEmail(''); setSenha('');
       nav.navigate('App');
     } else {
       alertar('Erro ao entrar', resultado.error);
     }
-    setEmail(''); setSenha('');
   }
 
   async function EntrarComGoogle() {

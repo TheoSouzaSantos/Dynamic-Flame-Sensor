@@ -1,7 +1,7 @@
 // Tela de boas-vindas (pré-login): ponto de entrada pra "Entrar" ou
 // "Cadastro", mostrada quando não há sessão ativa (ver App.js).
-import React, { useEffect, useRef } from 'react';
-import { Animated, Easing, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { AccessibilityInfo, Animated, Easing, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../css/theme';
 import makeStyles from '../css/styles';
@@ -12,15 +12,26 @@ export default function Intro() {
   const { colors } = useTheme();
   const s = makeStyles(colors);
   const breathe = useRef(new Animated.Value(0)).current;
+  const [reduzirMovimento, setReduzirMovimento] = useState(false);
 
   useEffect(() => {
-    Animated.loop(
+    let montado = true;
+    AccessibilityInfo.isReduceMotionEnabled().then((valor) => { if (montado) setReduzirMovimento(valor); });
+    const assinatura = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduzirMovimento);
+    return () => { montado = false; assinatura.remove(); };
+  }, []);
+
+  useEffect(() => {
+    if (reduzirMovimento) { breathe.setValue(0); return; }
+    const animBreathe = Animated.loop(
       Animated.sequence([
         Animated.timing(breathe, { toValue: 1, duration: 2100, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
         Animated.timing(breathe, { toValue: 0, duration: 2100, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
       ])
-    ).start();
-  }, []);
+    );
+    animBreathe.start();
+    return () => { animBreathe.stop(); };
+  }, [reduzirMovimento]);
 
   const scale = breathe.interpolate({ inputRange: [0, 1], outputRange: [1, 1.12] });
   const pontos = [

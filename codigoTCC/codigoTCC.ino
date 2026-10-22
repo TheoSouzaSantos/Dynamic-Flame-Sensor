@@ -65,9 +65,12 @@ bool tentarChamaPrimeiro = true;
 unsigned long ultimaPiscada = 0;
 bool alarmeLigado = false;
 const unsigned long INTERVALO_PISCA = 250;
-// Enquanto um POST espera resposta o loop fica parado (e o sensor também),
-// então o timeout precisa ser curto.
-const uint16_t TIMEOUT_HTTP = 10000;
+// Enquanto um POST espera resposta o loop fica parado (sensor e alarme local
+// incluídos, já que ambos só são recalculados na próxima volta do loop) —
+// por isso o timeout precisa ser bem curto: ele é o limite de quanto tempo
+// o alarme físico pode ficar sem reagir a uma leitura nova quando o backend
+// está lento/offline (ex. cold start do Render em plano free).
+const uint16_t TIMEOUT_HTTP = 3000;
 
 WiFiManager wmanage;
 // Global: o portal roda em segundo plano e usa o campo depois do setup().

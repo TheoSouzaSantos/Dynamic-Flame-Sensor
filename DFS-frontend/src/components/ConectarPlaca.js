@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Text, TouchableOpacity, View } from 'react-native';
+import { AccessibilityInfo, Animated, Easing, Text, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
@@ -44,21 +44,33 @@ export default function ConectarPlaca() {
 
   const pulse = useRef(new Animated.Value(1)).current;
   const breathe = useRef(new Animated.Value(0)).current;
+  const [reduzirMovimento, setReduzirMovimento] = useState(false);
 
   useEffect(() => {
-    Animated.loop(
+    let montado = true;
+    AccessibilityInfo.isReduceMotionEnabled().then((valor) => { if (montado) setReduzirMovimento(valor); });
+    const assinatura = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduzirMovimento);
+    return () => { montado = false; assinatura.remove(); };
+  }, []);
+
+  useEffect(() => {
+    if (reduzirMovimento) { pulse.setValue(1); breathe.setValue(0); return; }
+    const animPulse = Animated.loop(
       Animated.sequence([
         Animated.timing(pulse, { toValue: 0.4, duration: 600, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
         Animated.timing(pulse, { toValue: 1, duration: 600, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
       ])
-    ).start();
-    Animated.loop(
+    );
+    const animBreathe = Animated.loop(
       Animated.sequence([
         Animated.timing(breathe, { toValue: 1, duration: 2100, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
         Animated.timing(breathe, { toValue: 0, duration: 2100, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
       ])
-    ).start();
-  }, []);
+    );
+    animPulse.start();
+    animBreathe.start();
+    return () => { animPulse.stop(); animBreathe.stop(); };
+  }, [reduzirMovimento]);
 
   // Enquanto aguarda o pareamento: conta o tempo de validade do código. A
   // detecção de "a placa já confirmou" vem do poll de /placas que o

@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import { Animated, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { AccessibilityInfo, Animated, Text, TouchableOpacity, View } from 'react-native';
 import { useTheme } from '../css/theme';
 import makeStyles from '../css/styles';
 
@@ -13,16 +13,33 @@ export default function AlarmBanner({ tipo = 'chama', comodo, quando, onSilencia
   const titulo = tipo === 'gas' ? 'Gás detectado' : 'Chama detectada';
   const slide = useRef(new Animated.Value(-60)).current;
   const pulse = useRef(new Animated.Value(1)).current;
+  const [reduzirMovimento, setReduzirMovimento] = useState(false);
+
+  useEffect(() => {
+    let montado = true;
+    AccessibilityInfo.isReduceMotionEnabled().then((valor) => { if (montado) setReduzirMovimento(valor); });
+    const assinatura = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduzirMovimento);
+    return () => { montado = false; assinatura.remove(); };
+  }, []);
 
   useEffect(() => {
     Animated.spring(slide, { toValue: 0, useNativeDriver: true, friction: 9 }).start();
-    Animated.loop(
+  }, []);
+
+  // Loop isolado do seu próprio efeito (em vez de junto com o `spring` acima)
+  // pra poder ser parado no cleanup — esse pulse rodava pra sempre, inclusive
+  // depois da faixa desmontar quando o alerta é silenciado/limpo.
+  useEffect(() => {
+    if (reduzirMovimento) { pulse.setValue(1); return; }
+    const animPulse = Animated.loop(
       Animated.sequence([
         Animated.timing(pulse, { toValue: 0.72, duration: 550, useNativeDriver: true }),
         Animated.timing(pulse, { toValue: 1, duration: 550, useNativeDriver: true }),
       ])
-    ).start();
-  }, []);
+    );
+    animPulse.start();
+    return () => { animPulse.stop(); };
+  }, [reduzirMovimento]);
 
   return (
     <Animated.View style={{ transform: [{ translateY: slide }], marginHorizontal: 16, marginTop: 12,

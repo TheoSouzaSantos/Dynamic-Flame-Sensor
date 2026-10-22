@@ -57,21 +57,21 @@ function Rotas() {
   const ultimaNotificacao = Notifications.useLastNotificationResponse();
   useEffect(() => {
     if(ultimaNotificacao){
-      const { sensorId } = ultimaNotificacao.notification.request.content.data;
-      if(navigationRef.isReady()){
+      const sensorId = ultimaNotificacao.notification.request.content.data?.sensorId;
+      if(sensorId && navigationRef.isReady()){
         navigationRef.navigate("SensorDetalhe", {sensorId: sensorId});
       }
     }
-    
+
   }, [ultimaNotificacao]);
 
   useEffect(()=>{
     const notificacao = Notifications.addNotificationResponseReceivedListener((response) => {
-      const { sensorId } = response.notification.request.content.data;
-      if(navigationRef.isReady()){
+      const sensorId = response.notification.request.content.data?.sensorId;
+      if(sensorId && navigationRef.isReady()){
         navigationRef.navigate("SensorDetalhe", {sensorId: sensorId});
       }
-      
+
     });
     return () => notificacao.remove();
   }, []);
