@@ -8,7 +8,7 @@ import Screen from './Screen';
 import { usePlacas } from '../context/PlacasContext';
 import { useSensores } from '../context/SensoresContext';
 import { estadoDoSensor } from '../utils/estadoSensor';
-import useAlarmeChama from '../hooks/useAlarmeChama';
+import useAlarmes from '../hooks/useAlarmes';
 import { contarPlacasOffline } from '../utils/placaOffline';
 import { tempoRelativo } from '../utils/tempoRelativo';
 import { onda } from '../utils/animacaoIndicador';
@@ -62,8 +62,7 @@ export default function Home() {
 
   const scale = breathe.interpolate({ inputRange: [0, 1], outputRange: [1, 1.12] });
   const sensoresComEstado = sensores.map((sn) => ({ ...sn, estado: estadoDoSensor(sn) }));
-  const { emChama, silenciarAlarme } = useAlarmeChama(sensoresComEstado);
-  const emGas = sensoresComEstado.find((sn) => sn.estado === 'gas');
+  const { emChama, emGas, mostrarBannerChama, mostrarBannerGas, silenciarChama, silenciarGas } = useAlarmes(sensoresComEstado);
   const alerta = emChama || emGas;
 
   // Fogo consumindo o indicador: brilho tremulando sob a chama (ilustração
@@ -111,9 +110,15 @@ export default function Home() {
 
   return (
     <Screen style={s.screen} edges={['bottom']}>
-      {emChama && <AlarmBanner comodo={emChama.comodo || emChama.nome}
-        quando={tempoRelativo(emChama.ultimaLeituraChama && emChama.ultimaLeituraChama.serverTs)}
-        onSilenciar={() => silenciarAlarme(emChama)} />}
+      {mostrarBannerChama ? (
+        <AlarmBanner tipo="chama" comodo={mostrarBannerChama.comodo || mostrarBannerChama.nome}
+          quando={tempoRelativo(mostrarBannerChama.ultimaLeituraChama && mostrarBannerChama.ultimaLeituraChama.serverTs)}
+          onSilenciar={() => silenciarChama(mostrarBannerChama)} />
+      ) : mostrarBannerGas ? (
+        <AlarmBanner tipo="gas" comodo={mostrarBannerGas.comodo || mostrarBannerGas.nome}
+          quando={tempoRelativo(mostrarBannerGas.ultimaLeituraGas && mostrarBannerGas.ultimaLeituraGas.serverTs)}
+          onSilenciar={() => silenciarGas(mostrarBannerGas)} />
+      ) : null}
       <ScrollView refreshControl={<RefreshControl refreshing={carregando} onRefresh={atualizar} tintColor={colors.flame} />}>
         <View style={[s.rowBetween, { paddingHorizontal: 24, paddingTop: 26 }]}>
           <Text style={s.kicker}>MINHA CASA</Text>

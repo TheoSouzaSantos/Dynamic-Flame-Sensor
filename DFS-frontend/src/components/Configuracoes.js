@@ -9,14 +9,20 @@ import makeStyles from '../css/styles';
 import { preferencias } from '../data/mock';
 import Screen from './Screen';
 import { useLogin } from '../context/LoginContext';
+import { useAlarmeContext } from '../context/AlarmeContext';
 
 const CHAVE_PREFS = '@dfs/preferencias-notificacao';
 
 const CHAVE_NOTIFICACAO_BACKEND = { p1: 'notifChama', p2: 'notifGas' };
 
+// Mesma correspondência usada em AlarmeContext, pra espelhar o toggle no
+// estado em memória que o banner de qualquer tela lê.
+const TIPO_ALARME = { p1: 'chama', p2: 'gas' };
+
 export default function Configuracoes() {
   const { colors, isDark, toggle } = useTheme();
   const { salvarPreferenciaNotificacao } = useLogin();
+  const { setPreferencia } = useAlarmeContext();
   const s = makeStyles(colors);
   const [prefs, setPrefs] = useState(preferencias);
 
@@ -40,6 +46,8 @@ export default function Configuracoes() {
       AsyncStorage.setItem(CHAVE_PREFS, JSON.stringify(nova)).catch(() => {});
       const chaveBackend = CHAVE_NOTIFICACAO_BACKEND[id];
       if (chaveBackend) salvarPreferenciaNotificacao(chaveBackend, novoValor);
+      const tipoAlarme = TIPO_ALARME[id];
+      if (tipoAlarme) setPreferencia(tipoAlarme, novoValor);
       return nova;
     });
 

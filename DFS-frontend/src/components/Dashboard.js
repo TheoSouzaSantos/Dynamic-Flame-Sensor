@@ -11,7 +11,7 @@ import Screen from './Screen';
 import { usePlacas } from '../context/PlacasContext';
 import { useSensores } from '../context/SensoresContext';
 import { estadoDoSensor } from '../utils/estadoSensor';
-import useAlarmeChama from '../hooks/useAlarmeChama';
+import useAlarmes from '../hooks/useAlarmes';
 import { contarPlacasOffline } from '../utils/placaOffline';
 import { tempoRelativo } from '../utils/tempoRelativo';
 
@@ -58,15 +58,21 @@ export default function Dashboard() {
   const sensoresComEstado = sensores
     .filter((sn) => sn.ativo || !ocultos.includes(sn.id))
     .map((sensor) => ({ ...sensor, estado: estadoDoSensor(sensor) }));
-  const { emChama, silenciarAlarme } = useAlarmeChama(sensoresComEstado);
+  const { mostrarBannerChama, mostrarBannerGas, silenciarChama, silenciarGas } = useAlarmes(sensoresComEstado);
   const cômodos = new Set(sensores.filter((sn) => sn.comodo).map((sn) => sn.comodo));
   const placasOffline = contarPlacasOffline(placas);
 
   return (
     <Screen style={s.screen} edges={['bottom']}>
-      {emChama && <AlarmBanner comodo={emChama.comodo || emChama.nome}
-        quando={tempoRelativo(emChama.ultimaLeituraChama && emChama.ultimaLeituraChama.serverTs)}
-        onSilenciar={() => silenciarAlarme(emChama)} />}
+      {mostrarBannerChama ? (
+        <AlarmBanner tipo="chama" comodo={mostrarBannerChama.comodo || mostrarBannerChama.nome}
+          quando={tempoRelativo(mostrarBannerChama.ultimaLeituraChama && mostrarBannerChama.ultimaLeituraChama.serverTs)}
+          onSilenciar={() => silenciarChama(mostrarBannerChama)} />
+      ) : mostrarBannerGas ? (
+        <AlarmBanner tipo="gas" comodo={mostrarBannerGas.comodo || mostrarBannerGas.nome}
+          quando={tempoRelativo(mostrarBannerGas.ultimaLeituraGas && mostrarBannerGas.ultimaLeituraGas.serverTs)}
+          onSilenciar={() => silenciarGas(mostrarBannerGas)} />
+      ) : null}
       <ScrollView refreshControl={<RefreshControl refreshing={carregando} onRefresh={atualizar} tintColor={colors.flame} />}>
         <View style={{ paddingHorizontal: 20, paddingTop: 24 }}>
           <Text style={s.kicker}>MINHA CASA</Text>

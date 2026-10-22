@@ -3,10 +3,14 @@ import { Animated, Text, TouchableOpacity, View } from 'react-native';
 import { useTheme } from '../css/theme';
 import makeStyles from '../css/styles';
 
-// Faixa de alarme que desce do topo. Usada no Início e no Painel.
-export default function AlarmBanner({ comodo, quando, onSilenciar }) {
+// Faixa de alarme que desce do topo. Usada no Início e no Painel, pra
+// chama e, agora, pra gás também — `tipo` escolhe cor/ícone/texto.
+export default function AlarmBanner({ tipo = 'chama', comodo, quando, onSilenciar }) {
   const { colors } = useTheme();
   const s = makeStyles(colors);
+  const cor = tipo === 'gas' ? colors.gas : colors.flame;
+  const icone = tipo === 'gas' ? '⛽' : '🔥';
+  const titulo = tipo === 'gas' ? 'Gás detectado' : 'Chama detectada';
   const slide = useRef(new Animated.Value(-60)).current;
   const pulse = useRef(new Animated.Value(1)).current;
 
@@ -22,14 +26,14 @@ export default function AlarmBanner({ comodo, quando, onSilenciar }) {
 
   return (
     <Animated.View style={{ transform: [{ translateY: slide }], marginHorizontal: 16, marginTop: 12,
-      padding: 14, borderRadius: 12, backgroundColor: colors.flame, flexDirection: 'row',
+      padding: 14, borderRadius: 12, backgroundColor: cor, flexDirection: 'row',
       alignItems: 'center', gap: 12 }}>
       <Animated.View style={{ opacity: pulse, width: 34, height: 34, borderRadius: 9,
         backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ fontSize: 17 }}>🔥</Text>
+        <Text style={{ fontSize: 17 }}>{icone}</Text>
       </Animated.View>
       <View style={{ flex: 1 }}>
-        <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Chama detectada</Text>
+        <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>{titulo}</Text>
         <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 12.5 }}>{comodo}{quando ? ` · ${quando}` : ''}</Text>
       </View>
       <TouchableOpacity onPress={onSilenciar} style={{ minHeight: 36, paddingHorizontal: 12,

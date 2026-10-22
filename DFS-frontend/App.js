@@ -18,6 +18,7 @@ import { LoginProvider, useLogin } from './src/context/LoginContext';
 import { PlacasProvider } from './src/context/PlacasContext';
 import { SensoresProvider } from './src/context/SensoresContext';
 import { AlertModalProvider } from './src/context/AlertModalContext';
+import { AlarmeProvider } from './src/context/AlarmeContext';
 import { ThemeProvider, useTheme } from './src/css/theme';
 
 import Intro from './src/components/Intro';
@@ -110,13 +111,15 @@ export default function App() {
     <SafeAreaProvider>
       <ThemeProvider>
         <AlertModalProvider>
-          <LoginProvider>
-            <PlacasProvider>
-              <SensoresProvider>
-                <Rotas />
-              </SensoresProvider>
-            </PlacasProvider>
-          </LoginProvider>
+          <AlarmeProvider>
+            <LoginProvider>
+              <PlacasProvider>
+                <SensoresProvider>
+                  <Rotas />
+                </SensoresProvider>
+              </PlacasProvider>
+            </LoginProvider>
+          </AlarmeProvider>
         </AlertModalProvider>
       </ThemeProvider>
     </SafeAreaProvider>
