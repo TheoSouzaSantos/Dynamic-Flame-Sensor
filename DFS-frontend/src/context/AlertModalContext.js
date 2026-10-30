@@ -65,19 +65,22 @@ export function AlertModalProvider({ children }) {
 
                         {estado.variante === 'confirmacao' ? (
                             <View style={[s.row, { gap: 10, marginTop: 20 }]}>
-                                <TouchableOpacity style={[s.btnGhost, { flex: 1 }]} onPress={() => resolverEFechar(false)}>
+                                <TouchableOpacity style={[s.btnGhost, { flex: 1 }]} onPress={() => resolverEFechar(false)}
+                                    accessibilityRole="button">
                                     <Text style={s.btnGhostText}>{estado.textoCancelar}</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity
                                     style={[estado.destrutivo ? s.btnDanger : s.btnPrimary, { flex: 1 }]}
-                                    onPress={() => resolverEFechar(true)}>
+                                    onPress={() => resolverEFechar(true)}
+                                    accessibilityRole="button">
                                     <Text style={estado.destrutivo ? s.btnDangerText : s.btnPrimaryText}>
                                         {estado.textoConfirmar}
                                     </Text>
                                 </TouchableOpacity>
                             </View>
                         ) : (
-                            <TouchableOpacity style={[s.btnPrimary, { marginTop: 20 }]} onPress={fechar}>
+                            <TouchableOpacity style={[s.btnPrimary, { marginTop: 20 }]} onPress={fechar}
+                                accessibilityRole="button">
                                 <Text style={s.btnPrimaryText}>OK</Text>
                             </TouchableOpacity>
                         )}

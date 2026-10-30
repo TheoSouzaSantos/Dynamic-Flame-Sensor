@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, Animated, AppState, Easing, RefreshControl, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../css/theme';
 import makeStyles from '../css/styles';
 import AlarmBanner from './AlarmBanner';
@@ -112,6 +113,9 @@ export default function Home() {
   const spreadFase3 = Animated.modulo(Animated.add(spread, 0.66), 1);
   const placasOffline = contarPlacasOffline(placas);
   const qtdAtivos = sensores.filter((sn) => sn.ativo).length;
+  const statusLabel = emChama ? `Chama em ${emChama.comodo || emChama.nome}`
+    : emGas ? `Gás em ${emGas.comodo || emGas.nome}`
+    : 'Tudo tranquilo';
 
   return (
     <Screen style={s.screen} edges={['bottom']}>
@@ -131,7 +135,10 @@ export default function Home() {
         </View>
 
         <View style={{ alignItems: 'center', paddingHorizontal: 24, paddingTop: 40, paddingBottom: 26 }}>
-          <View style={{ width: 188, height: 188, alignItems: 'center', justifyContent: 'center' }}>
+          <View
+            style={{ width: 188, height: 188, alignItems: 'center', justifyContent: 'center' }}
+            accessible
+            accessibilityLabel={statusLabel}>
             <Animated.View style={{ position: 'absolute', width: 188, height: 188, borderRadius: 94,
               backgroundColor: emChama ? colors.flameBg : emGas ? colors.gasBg : colors.muted, transform: [{ scale }] }} />
 
@@ -148,9 +155,13 @@ export default function Home() {
               backgroundColor: emChama ? colors.flame : emGas ? colors.gas : colors.card,
               borderWidth: alerta ? 0 : 1, borderColor: colors.border,
               alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ fontSize: alerta ? 44 : 13, color: alerta ? '#fff' : colors.textSecondary }}>
-                {emChama ? '🔥' : emGas ? '⛽' : 'OK'}
-              </Text>
+              {emChama ? (
+                <Ionicons name="flame" size={44} color="#fff" />
+              ) : emGas ? (
+                <MaterialCommunityIcons name="gas-cylinder" size={44} color="#fff" />
+              ) : (
+                <Text style={s.indicatorLabel}>OK</Text>
+              )}
             </View>
 
             {emGas && !reduzirMovimento && (
@@ -203,7 +214,7 @@ export default function Home() {
                   { scale: fase.interpolate({ inputRange: [0, 1], outputRange: [[0.6, 1.0], [0.7, 1.15], [0.65, 1.05], [0.75, 1.2], [0.68, 1.1]][i] }) },
                 ],
               }}>
-                <Text style={{ fontSize: 15 }}>🔥</Text>
+                <Text style={s.glyph}>🔥</Text>
               </Animated.View>
             ))}
 
@@ -222,9 +233,7 @@ export default function Home() {
           </View>
           <Text style={[s.display, { marginTop: 26, textAlign: 'center',
             color: emChama ? colors.flame : emGas ? colors.gas : colors.textPrimary }]}>
-            {emChama ? `Chama em ${emChama.comodo || emChama.nome}`
-              : emGas ? `Gás em ${emGas.comodo || emGas.nome}`
-              : 'Tudo tranquilo'}
+            {statusLabel}
           </Text>
           <Text style={[s.body14, { marginTop: 10, textAlign: 'center', maxWidth: 280 }]}>
             {alerta
@@ -241,8 +250,8 @@ export default function Home() {
               <View style={[s.row, { gap: 12 }]}>
                 <View style={[s.dot, { backgroundColor: !sn.ativo ? colors.textMuted
                   : sn.estado === 'chama' ? colors.flame : sn.estado === 'gas' ? colors.gas : colors.gas }]} />
-                <Text style={{ fontSize: 14, fontWeight: '500',
-                  color: !sn.ativo ? colors.textSecondary : colors.textPrimary }}>
+                <Text style={[s.rowTitle,
+                  { color: !sn.ativo ? colors.textSecondary : colors.textPrimary }]}>
                   {sn.nome}{!sn.ativo ? ' · desativado' : ''}
                 </Text>
               </View>
@@ -253,7 +262,7 @@ export default function Home() {
       </ScrollView>
 
       <View style={{ paddingHorizontal: 24, paddingVertical: 18 }}>
-        <TouchableOpacity style={s.btnPrimary} onPress={() => nav.navigate('Painel')}>
+        <TouchableOpacity style={s.btnPrimary} onPress={() => nav.navigate('Painel')} accessibilityRole="button">
           <Text style={s.btnPrimaryText}>Ver todos os sensores</Text>
         </TouchableOpacity>
       </View>

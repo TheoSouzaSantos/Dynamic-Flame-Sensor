@@ -73,7 +73,11 @@ export default function CadastroPage() {
   return (
     <Screen style={s.screen}>
       <View style={{ paddingHorizontal: 20, paddingTop: 16 }}>
-        <TouchableOpacity style={s.iconBtn} onPress={() => nav.navigate('Intro')}>
+        <TouchableOpacity
+          style={s.iconBtn}
+          onPress={() => nav.navigate('Intro')}
+          accessibilityRole="button"
+          accessibilityLabel="Voltar">
           <Ionicons name="arrow-back" size={18} color={colors.textPrimary} />
         </TouchableOpacity>
       </View>
@@ -101,7 +105,12 @@ export default function CadastroPage() {
             value={senha} onChangeText={setSenha} placeholder="••••••••"
             secureTextEntry={!senhaVisible}
             suffix={
-              <TouchableOpacity onPress={() => setSenhaVisible((v) => !v)} style={{ padding: 4 }}>
+              <TouchableOpacity
+                onPress={() => setSenhaVisible((v) => !v)}
+                style={{ padding: 4 }}
+                hitSlop={{ top: 9, bottom: 9, left: 9, right: 9 }}
+                accessibilityRole="button"
+                accessibilityLabel={senhaVisible ? 'Ocultar senha' : 'Mostrar senha'}>
                 <Ionicons name={senhaVisible ? 'eye-off-outline' : 'eye-outline'} size={18}
                   color={colors.textMuted} />
               </TouchableOpacity>
@@ -117,7 +126,11 @@ export default function CadastroPage() {
             {REQUISITOS_LABEL.map(({ chave, texto }) => {
               const atendido = requisitos[chave];
               return (
-                <View key={chave} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <View
+                  key={chave}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
+                  accessible
+                  accessibilityLabel={`${texto}: ${atendido ? 'atendido' : 'pendente'}`}>
                   <Ionicons
                     name={atendido ? 'checkmark-circle' : 'ellipse-outline'}
                     size={14}
@@ -137,16 +150,22 @@ export default function CadastroPage() {
         <TouchableOpacity
           style={[s.btnPrimary, { opacity: cadastroHabilitado ? 1 : 0.5 }]}
           disabled={!cadastroHabilitado}
-          onPress={EnviarCadastro}>
+          onPress={EnviarCadastro}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: !cadastroHabilitado }}>
           <Text style={s.btnPrimaryText}>Criar conta</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[s.btnGhost, { flexDirection: 'row', gap: 10, justifyContent: 'center', opacity: googlePronto ? 1 : 0.5 }]}
-          disabled={!googlePronto || entrandoComGoogle} onPress={CriarContaComGoogle}>
+          disabled={!googlePronto || entrandoComGoogle} onPress={CriarContaComGoogle}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: !googlePronto || entrandoComGoogle }}
+          accessibilityLabel="Continuar com Google">
           <Ionicons name="logo-google" size={16} color={colors.textPrimary} />
           <Text style={s.btnGhostText}>{entrandoComGoogle ? 'Conectando...' : 'Continuar com Google'}</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => nav.navigate('Entrar')}>
+        <TouchableOpacity onPress={() => nav.navigate('Entrar')} accessibilityRole="button"
+          hitSlop={{ top: 13, bottom: 13, left: 13, right: 13 }}>
           <Text style={[s.body12, { textAlign: 'center' }]}>Já tenho uma conta</Text>
         </TouchableOpacity>
       </View>
@@ -159,7 +178,7 @@ function Field({ label, focused, suffix, s, colors, ...props }) {
     <View style={s.inputGroup}>
       <Text style={s.label}>{label}</Text>
       <View style={[s.inputRow, focused && s.inputRowFocused]}>
-        <TextInput {...props} style={s.input} placeholderTextColor={colors.textMuted} />
+        <TextInput {...props} style={s.input} placeholderTextColor={colors.textMuted} accessibilityLabel={label} />
         {suffix}
       </View>
     </View>

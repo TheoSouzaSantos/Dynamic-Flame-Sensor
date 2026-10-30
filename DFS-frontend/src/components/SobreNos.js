@@ -24,12 +24,15 @@ export default function SobreNos() {
 
       <ScrollView contentContainerStyle={{ padding: 20, gap: 8 }}>
         {DEVS.map((d) => (
-          <View key={d.nome} style={[s.card, s.row, { gap: 14 }]}>
-            <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: colors.muted,
-              borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ fontFamily: 'Georgia', fontSize: 15, color: colors.textSecondary }}>{d.iniciais}</Text>
+          <View key={d.nome} style={[s.card, s.row, { gap: 14 }]} accessible accessibilityLabel={d.nome}>
+            <View
+              style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: colors.muted,
+                borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' }}
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants">
+              <Text style={s.avatarInitial}>{d.iniciais}</Text>
             </View>
-            <Text style={{ flex: 1, fontSize: 14, fontWeight: '500', color: colors.textPrimary }}>{d.nome}</Text>
+            <Text style={[s.rowTitle, { flex: 1 }]}>{d.nome}</Text>
           </View>
         ))}
 

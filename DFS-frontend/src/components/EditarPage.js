@@ -80,7 +80,7 @@ export default function EditarPage() {
   return (
     <Screen style={s.screen}>
       <View style={[s.row, { gap: 14, paddingHorizontal: 20, paddingTop: 10 }]}>
-        <TouchableOpacity style={s.iconBtn} onPress={() => nav.goBack()}>
+        <TouchableOpacity style={s.iconBtn} onPress={() => nav.goBack()} accessibilityRole="button" accessibilityLabel="Fechar">
           <Ionicons name="close" size={18} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={s.kicker}>EDITAR PERFIL</Text>
@@ -95,11 +95,12 @@ export default function EditarPage() {
           <Text style={s.label}>NOME</Text>
           <View style={s.inputRow}>
             <TextInput style={s.input} value={nome} onChangeText={setNome}
-              placeholder="Seu nome" placeholderTextColor={colors.textMuted} />
+              placeholder="Seu nome" placeholderTextColor={colors.textMuted} accessibilityLabel="Nome" />
           </View>
         </View>
         <TouchableOpacity style={[s.btnPrimary, { opacity: salvando ? 0.6 : 1 }]}
-          disabled={salvando} onPress={SalvarNome}>
+          disabled={salvando} onPress={SalvarNome}
+          accessibilityRole="button" accessibilityState={{ disabled: salvando }}>
           <Text style={s.btnPrimaryText}>{salvando ? 'Salvando...' : 'Salvar nome'}</Text>
         </TouchableOpacity>
       </View>
@@ -108,27 +109,29 @@ export default function EditarPage() {
         <Text style={s.label}>SEGURANÇA</Text>
 
         <View style={s.card}>
-          <TouchableOpacity style={s.rowBetween} onPress={() => setMostrarEmail((v) => !v)}>
+          <TouchableOpacity style={s.rowBetween} onPress={() => setMostrarEmail((v) => !v)}
+            accessibilityRole="button" accessibilityLabel="Alterar e-mail" accessibilityState={{ expanded: mostrarEmail }}>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 13.5, fontWeight: '600', color: colors.textPrimary }}>Alterar e-mail</Text>
-              <Text style={[s.body12, { marginTop: 3, fontSize: 11.5 }]}>{user.email}</Text>
+              <Text style={s.cardTitle}>Alterar e-mail</Text>
+              <Text style={[s.caption, { marginTop: 3 }]}>{user.email}</Text>
             </View>
             <Ionicons name={mostrarEmail ? 'chevron-up' : 'chevron-down'} size={16} color={colors.textMuted} />
           </TouchableOpacity>
           {mostrarEmail && (
             <View style={{ marginTop: 14, gap: 10 }}>
-              <Text style={[s.body12, { fontSize: 11.5 }]}>
+              <Text style={s.caption}>
                 Enviaremos um link de confirmação para o novo e-mail. Nada muda até você clicar nele.
               </Text>
               <View style={s.inputGroup}>
                 <View style={s.inputRow}>
                   <TextInput style={s.input} value={novoEmail} onChangeText={setNovoEmail}
                     placeholder="novo@email.com" keyboardType="email-address" autoCapitalize="none"
-                    placeholderTextColor={colors.textMuted} />
+                    placeholderTextColor={colors.textMuted} accessibilityLabel="Novo e-mail" />
                 </View>
               </View>
               <TouchableOpacity style={[s.btnGhost, { opacity: enviandoEmail ? 0.6 : 1 }]}
-                disabled={enviandoEmail} onPress={EnviarConfirmacaoEmail}>
+                disabled={enviandoEmail} onPress={EnviarConfirmacaoEmail}
+                accessibilityRole="button" accessibilityState={{ disabled: enviandoEmail }}>
                 <Text style={s.btnGhostText}>{enviandoEmail ? 'Enviando...' : 'Enviar confirmação'}</Text>
               </TouchableOpacity>
             </View>
@@ -136,12 +139,13 @@ export default function EditarPage() {
         </View>
 
         <View style={s.card}>
-          <Text style={{ fontSize: 13.5, fontWeight: '600', color: colors.textPrimary }}>Alterar senha</Text>
-          <Text style={[s.body12, { marginTop: 3, fontSize: 11.5 }]}>
+          <Text style={s.cardTitle}>Alterar senha</Text>
+          <Text style={[s.caption, { marginTop: 3 }]}>
             Enviaremos um link de redefinição para {user.email}. Nada muda até você criar a nova senha pelo link.
           </Text>
           <TouchableOpacity style={[s.btnGhost, { marginTop: 14, opacity: enviandoSenha ? 0.6 : 1 }]}
-            disabled={enviandoSenha} onPress={RedefinirSenha}>
+            disabled={enviandoSenha} onPress={RedefinirSenha}
+            accessibilityRole="button" accessibilityState={{ disabled: enviandoSenha }}>
             <Text style={s.btnGhostText}>{enviandoSenha ? 'Enviando...' : 'Alterar senha'}</Text>
           </TouchableOpacity>
         </View>

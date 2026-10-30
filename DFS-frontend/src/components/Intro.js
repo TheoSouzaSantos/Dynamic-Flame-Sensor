@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, Animated, Easing, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../css/theme';
 import makeStyles from '../css/styles';
 import Screen from './Screen';
@@ -45,8 +46,12 @@ export default function Intro() {
       <ScrollView contentContainerStyle={{ paddingBottom: 20 }}>
         <View style={[s.rowBetween, { paddingHorizontal: 26, paddingTop: 34 }]}>
           <Text style={s.kicker}>DYNAMIC FLAME SENSOR</Text>
-          <TouchableOpacity onPress={() => nav.navigate('Entrar')}>
-            <Text style={{ fontSize: 12.5, fontWeight: '600', color: colors.textSecondary }}>Pular</Text>
+          <TouchableOpacity
+            onPress={() => nav.navigate('Entrar')}
+            hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
+            accessibilityRole="button"
+            accessibilityLabel="Pular introdução e ir para o login">
+            <Text style={[s.actionText, { color: colors.textSecondary }]}>Pular</Text>
           </TouchableOpacity>
         </View>
 
@@ -54,9 +59,12 @@ export default function Intro() {
           <View style={{ width: 196, height: 196, alignItems: 'center', justifyContent: 'center' }}>
             <Animated.View style={{ position: 'absolute', width: 196, height: 196, borderRadius: 98,
               backgroundColor: colors.flameBg, transform: [{ scale }] }} />
-            <View style={{ width: 96, height: 96, borderRadius: 48, backgroundColor: colors.flame,
-              alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ fontSize: 42 }}>🔥</Text>
+            <View
+              style={{ width: 96, height: 96, borderRadius: 48, backgroundColor: colors.flame,
+                alignItems: 'center', justifyContent: 'center' }}
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants">
+              <Ionicons name="flame" size={48} color="#fff" />
             </View>
           </View>
           <Text style={[s.display, { textAlign: 'center', marginTop: 34 }]}>A casa avisa antes do fogo</Text>
@@ -77,10 +85,10 @@ export default function Intro() {
       </ScrollView>
 
       <View style={{ paddingHorizontal: 26, paddingBottom: 24, gap: 10 }}>
-        <TouchableOpacity style={s.btnPrimary} onPress={() => nav.navigate('Cadastro')}>
+        <TouchableOpacity style={s.btnPrimary} onPress={() => nav.navigate('Cadastro')} accessibilityRole="button">
           <Text style={s.btnPrimaryText}>Criar conta</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={s.btnGhost} onPress={() => nav.navigate('Entrar')}>
+        <TouchableOpacity style={s.btnGhost} onPress={() => nav.navigate('Entrar')} accessibilityRole="button">
           <Text style={s.btnGhostText}>Já tenho conta</Text>
         </TouchableOpacity>
       </View>

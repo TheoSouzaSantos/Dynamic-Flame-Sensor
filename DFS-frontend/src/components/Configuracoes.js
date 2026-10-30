@@ -4,7 +4,7 @@
 import React, { useEffect, useState } from 'react';
 import { ScrollView, Switch, Text, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useTheme } from '../css/theme';
+import { useTheme, space } from '../css/theme';
 import makeStyles from '../css/styles';
 import { preferencias } from '../data/mock';
 import Screen from './Screen';
@@ -51,15 +51,17 @@ export default function Configuracoes() {
       return nova;
     });
 
-  const linha = (titulo, dica, valor, onChange) => (
-    <View key={titulo} style={[s.card, s.row, { gap: 14 }]}>
+  const linha = (titulo, dica, valor, onChange, ultima) => (
+    <View key={titulo} style={[s.listRow, { paddingHorizontal: space.md },
+      ultima && { borderBottomWidth: 0 }]}>
       <View style={{ flex: 1 }}>
-        <Text style={{ fontSize: 13.5, fontWeight: '600', color: colors.textPrimary }}>{titulo}</Text>
-        <Text style={[s.body12, { marginTop: 3, fontSize: 11.5 }]}>{dica}</Text>
+        <Text style={s.cardTitle}>{titulo}</Text>
+        <Text style={[s.caption, { marginTop: 3 }]}>{dica}</Text>
       </View>
       <Switch value={valor} onValueChange={onChange}
         trackColor={{ true: colors.flameBorder, false: colors.border }}
-        thumbColor={valor ? colors.flame : colors.card} />
+        thumbColor={valor ? colors.flame : colors.card}
+        accessibilityLabel={titulo} accessibilityHint={dica} />
     </View>
   );
 
@@ -69,9 +71,11 @@ export default function Configuracoes() {
         <Text style={s.title}>Configurações</Text>
         <Text style={[s.body12, { marginTop: 8 }]}>Notificações e aparência do app</Text>
       </View>
-      <ScrollView contentContainerStyle={{ padding: 20, gap: 8 }}>
-        {prefs.map((p) => linha(p.titulo, p.dica, p.ligado, () => alterna(p.id)))}
-        {linha('Tema escuro', 'Acompanha o sistema por padrão', isDark, toggle)}
+      <ScrollView contentContainerStyle={{ padding: 20 }}>
+        <View style={[s.card, { padding: 0 }]}>
+          {prefs.map((p) => linha(p.titulo, p.dica, p.ligado, () => alterna(p.id), false))}
+          {linha('Tema escuro', 'Acompanha o sistema por padrão', isDark, toggle, true)}
+        </View>
       </ScrollView>
     </Screen>
   );

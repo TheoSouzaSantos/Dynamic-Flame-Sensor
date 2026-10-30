@@ -17,6 +17,20 @@ export default function makeStyles(c) {
     mono: { fontSize: 12, color: c.textMuted, fontVariant: ['tabular-nums'] },
     label: { fontSize: 11, letterSpacing: 1.6, color: c.textMuted, fontWeight: '500' },
 
+    // Card/row/menu text roles — use instead of ad hoc inline fontSize values.
+    cardTitle: { fontSize: 13.5, fontWeight: '600', color: c.textPrimary },
+    rowTitle: { fontSize: 14, fontWeight: '500', color: c.textPrimary },
+    caption: { fontSize: 11.5, lineHeight: 16, color: c.textSecondary },
+    actionText: { fontSize: 12.5, fontWeight: '600' },
+    numeral: { fontFamily: font.display, fontSize: 26, color: c.textPrimary },
+    drawerTitle: { fontFamily: font.display, fontSize: 17, color: c.textPrimary },
+    indicatorLabel: { fontSize: 13, color: c.textSecondary },
+    avatarInitial: { fontFamily: font.display, fontSize: 15, color: c.textSecondary },
+    // Decorative single glyph/emoji characters (not prose text).
+    glyph: { fontSize: 18 },
+    glyphLg: { fontSize: 24 },
+    glyphXl: { fontSize: 42 },
+
     card: { backgroundColor: c.card, borderColor: c.border, borderWidth: 1,
       borderRadius: radius.md, padding: 14 },
     cardAlarm: { backgroundColor: c.flameBg, borderColor: c.flame, borderWidth: 1.5,

@@ -6,6 +6,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../css/theme';
 import makeStyles from '../css/styles';
 import SensorIcon from './SensorIcon';
+import ListCard from './ListCard';
 import Screen from './Screen';
 import { useSensores } from '../context/SensoresContext';
 import { estadoDoSensor } from '../utils/estadoSensor';
@@ -32,7 +33,10 @@ export default function Sensores() {
           contentContainerStyle={{ gap: 8, marginTop: 16 }}>
           {FILTROS.map((f) => (
             <TouchableOpacity key={f} onPress={() => setFiltro(f)}
-              style={filtro === f ? s.chipActive : s.chip}>
+              style={filtro === f ? s.chipActive : s.chip}
+              hitSlop={{ top: 6, bottom: 6 }}
+              accessibilityRole="button"
+              accessibilityState={{ selected: filtro === f }}>
               <Text style={filtro === f ? s.chipTextActive : s.chipText}>{f}</Text>
             </TouchableOpacity>
           ))}
@@ -42,19 +46,21 @@ export default function Sensores() {
       <ScrollView contentContainerStyle={{ padding: 20, gap: 8 }}
         refreshControl={<RefreshControl refreshing={carregando} onRefresh={atualizar} tintColor={colors.flame} />}>
         {lista.length === 0 && <Text style={s.body14}>Nenhum sensor por aqui.</Text>}
-        {lista.map((sn) => (
-          <TouchableOpacity key={sn.id} onPress={() => nav.navigate('SensorDetalhe', { sensorId: sn.id })}
-            style={[s.card, s.row, { gap: 12, opacity: sn.ativo ? 1 : 0.55 }]}>
-            <SensorIcon tipoGas={sn.tipoGas} tipoChama={sn.tipoChama} estado={sn.estado} colors={colors} />
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 13.5, fontWeight: '600', color: colors.textPrimary }}>{sn.nome}</Text>
-              <Text style={[s.body12, { marginTop: 3, fontSize: 11.5 }]}>
-                {sn.comodo || 'Sem cômodo definido'}
-              </Text>
-            </View>
-            <Text style={s.mono}>{sn.ativo ? ROTULOS[sn.estado] : 'desativado'}</Text>
-          </TouchableOpacity>
-        ))}
+        {lista.map((sn) => {
+          const statusTexto = sn.ativo ? ROTULOS[sn.estado] : 'desativado';
+          return (
+            <TouchableOpacity key={sn.id} onPress={() => nav.navigate('SensorDetalhe', { sensorId: sn.id })}
+              style={[s.card, { opacity: sn.ativo ? 1 : 0.55 }]}
+              accessibilityRole="button"
+              accessibilityLabel={`${sn.nome}${sn.comodo ? `, ${sn.comodo}` : ''}, ${statusTexto}`}>
+              <ListCard s={s}
+                icon={<SensorIcon tipoGas={sn.tipoGas} tipoChama={sn.tipoChama} estado={sn.estado} colors={colors} />}
+                title={sn.nome}
+                caption={sn.comodo || 'Sem cômodo definido'}
+                right={<Text style={s.mono}>{statusTexto}</Text>} />
+            </TouchableOpacity>
+          );
+        })}
       </ScrollView>
     </Screen>
   );

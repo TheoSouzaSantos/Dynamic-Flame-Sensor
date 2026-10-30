@@ -7,7 +7,7 @@ import { useLogin } from '../context/LoginContext';
 import { usePlacas } from '../context/PlacasContext';
 import { useSensores } from '../context/SensoresContext';
 import { useAlertModal } from '../context/AlertModalContext';
-import { useTheme } from '../css/theme';
+import { useTheme, space } from '../css/theme';
 import makeStyles from '../css/styles';
 import Screen from './Screen';
 import { contarPlacasOffline } from '../utils/placaOffline';
@@ -54,9 +54,12 @@ export default function ProfilePage() {
     <Screen style={s.screen} edges={['bottom']}>
       <ScrollView>
         <View style={[s.row, { gap: 14, paddingHorizontal: 20, paddingTop: 24 }]}>
-          <View style={{ width: 66, height: 66, borderRadius: 33, backgroundColor: colors.flameBg,
-            borderWidth: 1, borderColor: colors.flameBorder, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ fontFamily: 'Georgia', fontSize: 24, color: colors.flame }}>{iniciais}</Text>
+          <View
+            style={{ width: 66, height: 66, borderRadius: 33, backgroundColor: colors.flameBg,
+              borderWidth: 1, borderColor: colors.flameBorder, alignItems: 'center', justifyContent: 'center' }}
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants">
+            <Text style={[s.numeral, { color: colors.flame }]}>{iniciais}</Text>
           </View>
           <View style={{ flex: 1 }}>
             <Text style={s.subheading}>{nome}</Text>
@@ -66,27 +69,33 @@ export default function ProfilePage() {
 
         <View style={[s.row, { gap: 10, paddingHorizontal: 20, paddingTop: 22 }]}>
           {[[String(sensores.length), 'sensores'], [String(cômodos.size), 'cômodos'], [String(offline), 'placas offline']].map(([n, l]) => (
-            <View key={l} style={[s.card, { flex: 1 }]}>
-              <Text style={{ fontFamily: 'Georgia', fontSize: 24, color: colors.textPrimary }}>{n}</Text>
-              <Text style={[s.body12, { marginTop: 6, fontSize: 11.5 }]}>{l}</Text>
+            <View key={l} style={[s.card, { flex: 1 }]} accessible accessibilityLabel={`${n} ${l}`}>
+              <Text style={s.numeral}>{n}</Text>
+              <Text style={[s.caption, { marginTop: 6 }]}>{l}</Text>
             </View>
           ))}
         </View>
 
-        <View style={{ paddingHorizontal: 20, paddingTop: 20, gap: 8 }}>
-          {LINHAS.map((r) => (
-            <TouchableOpacity key={r.titulo} style={[s.card, s.row, { gap: 12 }]} onPress={r.onPress}>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 13.5, fontWeight: '600', color: colors.textPrimary }}>{r.titulo}</Text>
-                <Text style={[s.body12, { marginTop: 3, fontSize: 11.5 }]}>{r.meta}</Text>
-              </View>
-              <Text style={{ fontSize: 15, color: colors.textMuted }}>›</Text>
-            </TouchableOpacity>
-          ))}
+        <View style={{ paddingHorizontal: 20, paddingTop: 20 }}>
+          <View style={[s.card, { padding: 0 }]}>
+            {LINHAS.map((r, i) => (
+              <TouchableOpacity key={r.titulo}
+                style={[s.listRow, { paddingHorizontal: space.md },
+                  i === LINHAS.length - 1 && { borderBottomWidth: 0 }]}
+                onPress={r.onPress}
+                accessibilityRole="button" accessibilityLabel={`${r.titulo}, ${r.meta}`}>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.cardTitle}>{r.titulo}</Text>
+                  <Text style={[s.caption, { marginTop: 3 }]}>{r.meta}</Text>
+                </View>
+                <Text style={[s.glyph, { color: colors.textMuted }]} accessibilityElementsHidden>›</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
         <View style={{ paddingHorizontal: 20, paddingTop: 20 }}>
-          <TouchableOpacity style={s.btnGhost} onPress={AtivaSair}>
+          <TouchableOpacity style={s.btnGhost} onPress={AtivaSair} accessibilityRole="button">
             <Text style={s.btnGhostText}>Sair da conta</Text>
           </TouchableOpacity>
         </View>
@@ -97,7 +106,7 @@ export default function ProfilePage() {
           <Text style={[s.body12, { marginBottom: 12 }]}>
             Excluir sua conta remove seus dados de acesso permanentemente. Essa ação não pode ser desfeita.
           </Text>
-          <TouchableOpacity style={s.btnDanger} onPress={DeletaUsuario}>
+          <TouchableOpacity style={s.btnDanger} onPress={DeletaUsuario} accessibilityRole="button" accessibilityLabel="Excluir conta permanentemente">
             <Text style={s.btnDangerText}>Excluir conta</Text>
           </TouchableOpacity>
         </View>

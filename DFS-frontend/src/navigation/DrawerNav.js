@@ -68,15 +68,18 @@ function Gaveta({ navigation, state }) {
       <DrawerContentScrollView contentContainerStyle={{ paddingTop: insets.top + 8 }}>
         <View style={{ padding: 20, borderBottomWidth: 1, borderBottomColor: colors.border }}>
           <View style={[s.row, { gap: 12 }]}>
-            <View style={{ width: 40, height: 40, borderRadius: 11, backgroundColor: colors.flameBg,
-              borderWidth: 1, borderColor: colors.flameBorder, alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ fontSize: 18 }}>🔥</Text>
+            <View
+              style={{ width: 40, height: 40, borderRadius: 11, backgroundColor: colors.flameBg,
+                borderWidth: 1, borderColor: colors.flameBorder, alignItems: 'center', justifyContent: 'center' }}
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants">
+              <Ionicons name="flame" size={20} color={colors.flame} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontFamily: 'Georgia', fontSize: 17, color: colors.textPrimary }}>
+              <Text style={s.drawerTitle}>
                 Minha casa
               </Text>
-              <Text style={[s.body12, { marginTop: 3, fontSize: 11.5 }]}>
+              <Text style={[s.caption, { marginTop: 3 }]}>
                 {sensores.length} sensor{sensores.length === 1 ? '' : 'es'} · {comodos.size} cômodo{comodos.size === 1 ? '' : 's'}
               </Text>
             </View>
@@ -87,9 +90,12 @@ function Gaveta({ navigation, state }) {
           {ITENS.map((it) => (
             <TouchableOpacity key={it.rota} onPress={() => navigation.navigate(it.rota)}
               style={[s.row, { gap: 14, paddingVertical: 13, paddingHorizontal: 12,
-                borderRadius: 10, minHeight: 48 }]}>
+                borderRadius: 10, minHeight: 48 }]}
+              accessibilityRole="button"
+              accessibilityLabel={it.rota}
+              accessibilityState={{ selected: atual === it.rota }}>
               <Ionicons name={it.icone} size={17} color={colors.textSecondary} />
-              <Text style={{ flex: 1, fontSize: 14, fontWeight: '500', color: colors.textPrimary }}>
+              <Text style={[s.rowTitle, { flex: 1 }]}>
                 {it.rota}
               </Text>
               {atual === it.rota && (
@@ -100,9 +106,11 @@ function Gaveta({ navigation, state }) {
 
           <View style={{ borderTopWidth: 1, borderTopColor: colors.border, marginTop: 14, paddingTop: 12 }}>
             <TouchableOpacity onPress={() => navigation.navigate('AdicionaSensor')}
-              style={[s.row, { gap: 14, paddingVertical: 13, paddingHorizontal: 12, minHeight: 48 }]}>
+              style={[s.row, { gap: 14, paddingVertical: 13, paddingHorizontal: 12, minHeight: 48 }]}
+              accessibilityRole="button"
+              accessibilityLabel="Adicionar sensor">
               <Ionicons name="add" size={18} color={colors.flame} />
-              <Text style={{ flex: 1, fontSize: 14, fontWeight: '500', color: colors.flame }}>
+              <Text style={[s.rowTitle, { flex: 1, color: colors.flame }]}>
                 Adicionar sensor
               </Text>
             </TouchableOpacity>
@@ -112,13 +120,22 @@ function Gaveta({ navigation, state }) {
 
       <View style={[s.row, { gap: 12, padding: 20, paddingBottom: 20 + insets.bottom,
         borderTopWidth: 1, borderTopColor: colors.border }]}>
-        <TouchableOpacity style={{ flex: 1 }} onPress={() => navigation.navigate('Perfil')}>
-          <Text style={{ fontSize: 13, fontWeight: '500', color: colors.textPrimary }}>
+        <TouchableOpacity
+          style={{ flex: 1 }}
+          onPress={() => navigation.navigate('Perfil')}
+          hitSlop={{ top: 6, bottom: 6 }}
+          accessibilityRole="button"
+          accessibilityLabel={`Ver perfil de ${(user && user.nome) || 'minha conta'}`}>
+          <Text style={s.rowTitle}>
             {(user && user.nome) || 'Minha conta'}
           </Text>
-          <Text style={[s.body12, { marginTop: 3, fontSize: 11.5 }]}>Administrador · ver perfil ›</Text>
+          <Text style={[s.caption, { marginTop: 3 }]}>Administrador · ver perfil ›</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={toggle} style={s.iconBtn}>
+        <TouchableOpacity
+          onPress={toggle}
+          style={s.iconBtn}
+          accessibilityRole="button"
+          accessibilityLabel={isDark ? 'Mudar para tema claro' : 'Mudar para tema escuro'}>
           <Ionicons name={isDark ? 'moon' : 'sunny'} size={17} color={colors.flame} />
         </TouchableOpacity>
       </View>
@@ -128,6 +145,7 @@ function Gaveta({ navigation, state }) {
 
 export default function DrawerNav() {
   const { colors } = useTheme();
+  const s = makeStyles(colors);
   return (
     <Drawer.Navigator
       drawerContent={(props) => <Gaveta {...props} />}
@@ -135,7 +153,7 @@ export default function DrawerNav() {
         headerStyle: { backgroundColor: colors.bg, elevation: 0, shadowOpacity: 0,
           borderBottomWidth: 1, borderBottomColor: colors.border },
         headerTintColor: colors.textPrimary,
-        headerTitleStyle: { fontSize: 12, letterSpacing: 2.2, color: colors.textMuted },
+        headerTitleStyle: { ...s.kicker, letterSpacing: 2.2 },
         drawerType: 'front',
         drawerStyle: { width: 290 },
         sceneContainerStyle: { backgroundColor: colors.bg },

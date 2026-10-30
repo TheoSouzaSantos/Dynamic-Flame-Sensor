@@ -8,14 +8,23 @@ export default function Stepper({ s, colors, label, valor, onChange, icone, cor 
     <View style={[s.card, { gap: 10 }]}>
       <View style={[s.row, { gap: 8 }]}>
         <Ionicons name={icone} size={16} color={cor} />
-        <Text style={{ fontSize: 13.5, fontWeight: '600', color: colors.textPrimary }}>{label}</Text>
+        <Text style={s.cardTitle}>{label}</Text>
       </View>
       <View style={[s.rowBetween]}>
-        <TouchableOpacity style={s.iconBtn} onPress={() => onChange(Math.max(0, valor - 1))}>
+        <TouchableOpacity
+          style={s.iconBtn}
+          onPress={() => onChange(Math.max(0, valor - 1))}
+          accessibilityRole="button"
+          accessibilityLabel={`Diminuir ${label}`}
+          accessibilityState={{ disabled: valor <= 0 }}>
           <Ionicons name="remove" size={18} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={{ fontFamily: 'Georgia', fontSize: 26, color: colors.textPrimary }}>{valor}</Text>
-        <TouchableOpacity style={s.iconBtn} onPress={() => onChange(valor + 1)}>
+        <Text style={s.numeral} accessibilityLabel={`${label}: ${valor}`}>{valor}</Text>
+        <TouchableOpacity
+          style={s.iconBtn}
+          onPress={() => onChange(valor + 1)}
+          accessibilityRole="button"
+          accessibilityLabel={`Aumentar ${label}`}>
           <Ionicons name="add" size={18} color={colors.textPrimary} />
         </TouchableOpacity>
       </View>

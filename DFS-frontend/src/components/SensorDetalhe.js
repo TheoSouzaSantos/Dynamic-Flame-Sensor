@@ -24,12 +24,15 @@ function CampoEditavel({ s, colors, valor, placeholder, onSalvar }) {
       <View style={[s.row, { gap: 8 }]}>
         <View style={[s.inputRow, s.inputRowFocused, { flex: 1, height: 40 }]}>
           <TextInput style={s.input} value={texto} onChangeText={setTexto}
-            placeholder={placeholder} placeholderTextColor={colors.textMuted} autoFocus />
+            placeholder={placeholder} placeholderTextColor={colors.textMuted} autoFocus
+            accessibilityLabel={placeholder} />
         </View>
-        <TouchableOpacity style={s.iconBtn} onPress={() => { setEditando(false); onSalvar(texto.trim()); }}>
+        <TouchableOpacity style={s.iconBtn} onPress={() => { setEditando(false); onSalvar(texto.trim()); }}
+          accessibilityRole="button" accessibilityLabel={`Salvar ${placeholder.toLowerCase()}`}>
           <Ionicons name="checkmark" size={18} color={colors.gas} />
         </TouchableOpacity>
-        <TouchableOpacity style={s.iconBtn} onPress={() => { setTexto(valor); setEditando(false); }}>
+        <TouchableOpacity style={s.iconBtn} onPress={() => { setTexto(valor); setEditando(false); }}
+          accessibilityRole="button" accessibilityLabel="Cancelar edição">
           <Ionicons name="close" size={18} color={colors.textMuted} />
         </TouchableOpacity>
       </View>
@@ -39,7 +42,8 @@ function CampoEditavel({ s, colors, valor, placeholder, onSalvar }) {
   return (
     <View style={[s.row, { gap: 8 }]}>
       <Text style={[s.title, { flex: 1 }]} numberOfLines={1}>{valor || placeholder}</Text>
-      <TouchableOpacity style={s.iconBtn} onPress={() => setEditando(true)}>
+      <TouchableOpacity style={s.iconBtn} onPress={() => setEditando(true)}
+        accessibilityRole="button" accessibilityLabel={`Editar ${placeholder.toLowerCase()}`}>
         <Ionicons name="pencil" size={16} color={colors.textSecondary} />
       </TouchableOpacity>
     </View>
@@ -67,7 +71,7 @@ export default function SensorDetalhe() {
     return (
       <Screen style={[s.screen, { alignItems: 'center', justifyContent: 'center' }]}>
         <Text style={s.body14}>Sensor não encontrado.</Text>
-        <TouchableOpacity style={[s.btnGhost, { marginTop: 16, paddingHorizontal: 20 }]} onPress={() => nav.goBack()}>
+        <TouchableOpacity style={[s.btnGhost, { marginTop: 16, paddingHorizontal: 20 }]} onPress={() => nav.goBack()} accessibilityRole="button">
           <Text style={s.btnGhostText}>Voltar</Text>
         </TouchableOpacity>
       </Screen>
@@ -133,7 +137,7 @@ export default function SensorDetalhe() {
   return (
     <Screen style={s.screen}>
       <View style={[s.row, { gap: 14, paddingHorizontal: 20, paddingTop: 10 }]}>
-        <TouchableOpacity style={s.iconBtn} onPress={() => nav.goBack()}>
+        <TouchableOpacity style={s.iconBtn} onPress={() => nav.goBack()} accessibilityRole="button" accessibilityLabel="Voltar">
           <Ionicons name="arrow-back" size={17} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={s.kicker}>DETALHES DO SENSOR</Text>
@@ -182,14 +186,14 @@ export default function SensorDetalhe() {
               <View>
                 {/* Chama é digital (0/1): mostra o estado. Gás é analógico:
                     mostra o valor lido pelo MQ-2. */}
-                <Text style={{ fontFamily: 'Georgia', fontSize: 26, color: colors.textPrimary }}>
+                <Text style={s.numeral}>
                   {tipoUltimaLeitura === 'gas' ? ultimaLeitura.valor : ROTULOS[sensor.estadoChama] || 'Seguro'}
                 </Text>
                 <Text style={[s.body12, { marginTop: 4 }]}>
                   {ROTULOS[tipoUltimaLeitura] || tipoUltimaLeitura} · {new Date(ultimaLeitura.serverTs).toLocaleTimeString('pt-BR')}
                 </Text>
               </View>
-              <Text style={[s.body12, { fontSize: 11 }]}>{tempoRelativo(ultimaLeitura.serverTs)}</Text>
+              <Text style={s.caption}>{tempoRelativo(ultimaLeitura.serverTs)}</Text>
             </View>
           ) : (
             <Text style={s.body14}>Nenhuma leitura registrada ainda.</Text>
@@ -198,18 +202,21 @@ export default function SensorDetalhe() {
 
         {sensor.ativo ? (
           <TouchableOpacity style={[s.btnDanger, { marginTop: 8, opacity: desativando ? 0.6 : 1 }]}
-            disabled={desativando} onPress={desativarSensor}>
+            disabled={desativando} onPress={desativarSensor}
+            accessibilityRole="button" accessibilityState={{ disabled: desativando }}>
             <Text style={s.btnDangerText}>{desativando ? 'Desativando...' : 'Desativar sensor'}</Text>
           </TouchableOpacity>
         ) : (
           <TouchableOpacity style={[s.btnPrimary, { marginTop: 8, opacity: desativando ? 0.6 : 1 }]}
-            disabled={desativando} onPress={reativarSensor}>
+            disabled={desativando} onPress={reativarSensor}
+            accessibilityRole="button" accessibilityState={{ disabled: desativando }}>
             <Text style={s.btnPrimaryText}>{desativando ? 'Reativando...' : 'Reativar sensor'}</Text>
           </TouchableOpacity>
         )}
 
         <TouchableOpacity style={[s.btnGhost, { opacity: excluindo ? 0.6 : 1 }]}
-          disabled={excluindo} onPress={excluir}>
+          disabled={excluindo} onPress={excluir}
+          accessibilityRole="button" accessibilityState={{ disabled: excluindo }}>
           <Text style={[s.btnGhostText, { color: colors.flame }]}>{excluindo ? 'Excluindo...' : 'Excluir sensor'}</Text>
         </TouchableOpacity>
       </ScrollView>

@@ -100,10 +100,13 @@ export default function Dashboard() {
             return (
               <TouchableOpacity key={sn.id} onPress={() => nav.navigate('SensorDetalhe', { sensorId: sn.id })}
                 style={[cardStyle, { width: '48%', minHeight: 116, justifyContent: 'space-between',
-                  opacity: sn.ativo ? 1 : 0.6 }]}>
+                  opacity: sn.ativo ? 1 : 0.6 }]}
+                accessibilityRole="button"
+                accessibilityLabel={`${sn.nome}${sn.comodo ? `, ${sn.comodo}` : ''}, ${rotulo}`}
+                accessibilityState={{ disabled: !sn.ativo }}>
                 <View style={[s.rowBetween]}>
-                  <Text numberOfLines={1} style={{ flex: 1, fontSize: 13.5, fontWeight: '600',
-                    color: emAlerta ? corRotulo : colors.textPrimary }}>
+                  <Text numberOfLines={1} style={[s.cardTitle, { flex: 1,
+                    color: emAlerta ? corRotulo : colors.textPrimary }]}>
                     {sn.nome}
                   </Text>
                   {sn.ativo ? (
@@ -111,16 +114,19 @@ export default function Dashboard() {
                   ) : (
                     <TouchableOpacity onPress={() => ocultarDoPainel(sn.id)}
                       style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: colors.muted,
-                        alignItems: 'center', justifyContent: 'center' }}>
+                        alignItems: 'center', justifyContent: 'center' }}
+                      hitSlop={{ top: 9, bottom: 9, left: 9, right: 9 }}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Ocultar ${sn.nome} do painel`}>
                       <Ionicons name="close" size={16} color={colors.textSecondary} />
                     </TouchableOpacity>
                   )}
                 </View>
                 <View>
                   {!!sn.comodo && (
-                    <Text style={[s.body12, { fontSize: 11, marginBottom: 2 }]}>{sn.comodo}</Text>
+                    <Text style={[s.body12, { marginBottom: 2 }]}>{sn.comodo}</Text>
                   )}
-                  <Text style={{ fontSize: 11.5, fontWeight: '500', color: corRotulo }}>{rotulo}</Text>
+                  <Text style={[s.caption, { fontWeight: '500', color: corRotulo }]}>{rotulo}</Text>
                 </View>
               </TouchableOpacity>
             );
@@ -128,21 +134,28 @@ export default function Dashboard() {
 
           <TouchableOpacity onPress={() => nav.navigate('AdicionaSensor')}
             style={[s.card, { width: '48%', minHeight: 116, alignItems: 'center',
-              justifyContent: 'center', backgroundColor: colors.muted, borderStyle: 'dashed' }]}>
-            <Text style={{ fontSize: 20, color: colors.textMuted }}>+</Text>
-            <Text style={{ fontSize: 11.5, color: colors.textMuted, marginTop: 6 }}>Adicionar sensor</Text>
+              justifyContent: 'center', backgroundColor: colors.muted, borderStyle: 'dashed' }]}
+            accessibilityRole="button"
+            accessibilityLabel="Adicionar sensor">
+            <Text style={[s.glyph, { color: colors.textMuted }]}>+</Text>
+            <Text style={[s.caption, { color: colors.textMuted, marginTop: 6 }]}>Adicionar sensor</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
 
       <View style={[s.rowBetween, { paddingHorizontal: 20, paddingVertical: 14 }]}>
         <TouchableOpacity onPress={() => nav.navigate('ConectarPlaca')}
-          style={[s.btnGhost, { minHeight: 44, paddingHorizontal: 14, flexDirection: 'row', gap: 8 }]}>
+          style={[s.btnGhost, { minHeight: 44, paddingHorizontal: 14, flexDirection: 'row', gap: 8 }]}
+          accessibilityRole="button">
           <Ionicons name="hardware-chip-outline" size={15} color={colors.textPrimary} />
-          <Text style={[s.chipText, { fontSize: 12.5, color: colors.textPrimary }]}>Conectar outra placa</Text>
+          <Text style={[s.chipText, { color: colors.textPrimary }]}>Conectar outra placa</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={s.fab} onPress={() => nav.navigate('AdicionaSensor')}>
-          <Text style={{ fontSize: 24, color: colors.inkText }}>+</Text>
+        <TouchableOpacity
+          style={s.fab}
+          onPress={() => nav.navigate('AdicionaSensor')}
+          accessibilityRole="button"
+          accessibilityLabel="Adicionar sensor">
+          <Text style={[s.glyphLg, { color: colors.inkText }]}>+</Text>
         </TouchableOpacity>
       </View>
     </Screen>

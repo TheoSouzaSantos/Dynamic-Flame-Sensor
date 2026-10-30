@@ -181,7 +181,9 @@ export default function ConectarPlaca() {
           <TouchableOpacity
             disabled={salvando || (capacidadeChama === 0 && capacidadeGas === 0)}
             style={[s.btnPrimary, { opacity: salvando || (capacidadeChama === 0 && capacidadeGas === 0) ? 0.5 : 1 }]}
-            onPress={salvarCapacidade}>
+            onPress={salvarCapacidade}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: salvando || (capacidadeChama === 0 && capacidadeGas === 0) }}>
             <Text style={s.btnPrimaryText}>{salvando ? 'Salvando...' : 'Concluir'}</Text>
           </TouchableOpacity>
         </View>
@@ -207,7 +209,7 @@ export default function ConectarPlaca() {
               <View key={texto} style={[s.row, { gap: 10, alignItems: 'flex-start' }]}>
                 <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: colors.muted,
                   alignItems: 'center', justifyContent: 'center', marginTop: 1 }}>
-                  <Text style={{ fontSize: 11, fontWeight: '600', color: colors.textSecondary }}>{i + 1}</Text>
+                  <Text style={[s.mono, { fontWeight: '600', color: colors.textSecondary }]}>{i + 1}</Text>
                 </View>
                 <Text style={[s.body14, { flex: 1 }]}>{texto}</Text>
               </View>
@@ -217,11 +219,11 @@ export default function ConectarPlaca() {
           <View style={[s.card, { alignItems: 'center', paddingVertical: 24 }]}>
             <Text style={s.label}>CÓDIGO DE PAREAMENTO</Text>
             <View style={[s.row, { gap: 12, marginTop: 10 }]}>
-              <Text selectable style={{ fontFamily: 'Georgia', fontSize: 34, letterSpacing: 4,
-                color: colors.textPrimary }}>
+              <Text selectable style={[s.display, { letterSpacing: 4 }]}>
                 {pairCode}
               </Text>
-              <TouchableOpacity onPress={copiarCodigo} hitSlop={10}
+              <TouchableOpacity onPress={copiarCodigo} hitSlop={11}
+                accessibilityRole="button"
                 accessibilityLabel="Copiar código de pareamento">
                 <Ionicons name={copiado ? 'checkmark' : 'copy-outline'} size={22}
                   color={copiado ? colors.gas : colors.textSecondary} />
@@ -235,10 +237,10 @@ export default function ConectarPlaca() {
             <Animated.View style={[s.dot, { width: 10, height: 10, borderRadius: 5,
               backgroundColor: colors.gas, opacity: pulse }]} />
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 13.5, fontWeight: '600', color: colors.textPrimary }}>
+              <Text style={s.cardTitle}>
                 Aguardando a placa conectar
               </Text>
-              <Text style={[s.body12, { marginTop: 3, fontSize: 11.5 }]}>
+              <Text style={[s.caption, { marginTop: 3 }]}>
                 Assim que o código for confirmado, você poderá dizer quantos sensores ela tem.
               </Text>
             </View>
@@ -246,7 +248,7 @@ export default function ConectarPlaca() {
         </View>
 
         <View style={{ marginTop: 'auto', paddingHorizontal: 20, paddingBottom: 22 }}>
-          <TouchableOpacity style={s.btnGhost} onPress={cancelar}>
+          <TouchableOpacity style={s.btnGhost} onPress={cancelar} accessibilityRole="button">
             <Text style={s.btnGhostText}>Cancelar</Text>
           </TouchableOpacity>
         </View>
@@ -277,7 +279,7 @@ export default function ConectarPlaca() {
       {!!erro && <Text style={[s.body12, { color: colors.flame, marginTop: 12 }]}>{erro}</Text>}
 
       <TouchableOpacity disabled={iniciando} style={[s.btnPrimary, { marginTop: 26, width: '100%', opacity: iniciando ? 0.6 : 1 }]}
-        onPress={conectar}>
+        onPress={conectar} accessibilityRole="button" accessibilityState={{ disabled: iniciando }}>
         <Text style={s.btnPrimaryText}>{iniciando ? 'Conectando...' : 'Conectar placa'}</Text>
       </TouchableOpacity>
     </Screen>

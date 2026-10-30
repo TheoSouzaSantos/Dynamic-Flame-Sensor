@@ -45,7 +45,11 @@ export default function EsqueciSenhaPage() {
   return (
     <Screen style={s.screen}>
       <View style={{ paddingHorizontal: 20, paddingTop: 16 }}>
-        <TouchableOpacity style={s.iconBtn} onPress={() => nav.navigate('Entrar')}>
+        <TouchableOpacity
+          style={s.iconBtn}
+          onPress={() => nav.navigate('Entrar')}
+          accessibilityRole="button"
+          accessibilityLabel="Voltar">
           <Ionicons name="arrow-back" size={18} color={colors.textPrimary} />
         </TouchableOpacity>
       </View>
@@ -74,6 +78,7 @@ export default function EsqueciSenhaPage() {
                 placeholderTextColor={colors.textMuted}
                 keyboardType="email-address"
                 autoCapitalize="none"
+                accessibilityLabel="E-mail"
               />
             </View>
           </View>
@@ -92,10 +97,13 @@ export default function EsqueciSenhaPage() {
         <TouchableOpacity
           style={[s.btnPrimary, { opacity: email.trim() === '' ? 0.5 : 1 }]}
           disabled={email.trim() === '' || enviando}
-          onPress={EnviarPedido}>
+          onPress={EnviarPedido}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: email.trim() === '' || enviando }}>
           <Text style={s.btnPrimaryText}>{enviando ? 'Enviando...' : 'Enviar link de recuperação'}</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => nav.navigate('Entrar')}>
+        <TouchableOpacity onPress={() => nav.navigate('Entrar')} accessibilityRole="button"
+          hitSlop={{ top: 13, bottom: 13, left: 13, right: 13 }}>
           <Text style={[s.body12, { textAlign: 'center' }]}>Voltar para o login</Text>
         </TouchableOpacity>
       </View>

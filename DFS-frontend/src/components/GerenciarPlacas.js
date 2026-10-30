@@ -6,6 +6,7 @@ import { useTheme } from '../css/theme';
 import makeStyles from '../css/styles';
 import Screen from './Screen';
 import Stepper from './Stepper';
+import ListCard from './ListCard';
 import { usePlacas } from '../context/PlacasContext';
 import { useSensores } from '../context/SensoresContext';
 import { useAlertModal } from '../context/AlertModalContext';
@@ -69,7 +70,7 @@ export default function GerenciarPlacas() {
   return (
     <Screen style={s.screen}>
       <View style={[s.row, { gap: 14, paddingHorizontal: 20, paddingTop: 10 }]}>
-        <TouchableOpacity style={s.iconBtn} onPress={() => nav.goBack()}>
+        <TouchableOpacity style={s.iconBtn} onPress={() => nav.goBack()} accessibilityRole="button" accessibilityLabel="Voltar">
           <Ionicons name="arrow-back" size={17} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={s.kicker}>PLACAS E CONEXÃO</Text>
@@ -87,25 +88,24 @@ export default function GerenciarPlacas() {
         {placas.length === 0 && <Text style={s.body14}>Nenhuma placa conectada.</Text>}
         {placas.map((p, i) => (
           <View key={p.id} style={[s.card, { gap: 10 }]}>
-            <View style={[s.row, { gap: 12 }]}>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 13.5, fontWeight: '600', color: colors.textPrimary }}>Placa {i + 1}</Text>
-                <Text style={[s.body12, { marginTop: 3, fontSize: 11.5 }]}>
-                  {p.capacidadeChama} de chama · {p.capacidadeGas} de gás · {p.status}
-                </Text>
-              </View>
-              <TouchableOpacity style={s.iconBtn} onPress={() => abrirEdicao(p)}>
-                <Ionicons name="pencil" size={16} color={colors.textSecondary} />
-              </TouchableOpacity>
-            </View>
-            <TouchableOpacity style={s.btnDanger} onPress={() => setSelecionada(p)}>
+            <ListCard s={s}
+              title={`Placa ${i + 1}`}
+              caption={`${p.capacidadeChama} de chama · ${p.capacidadeGas} de gás · ${p.status}`}
+              right={
+                <TouchableOpacity style={s.iconBtn} onPress={() => abrirEdicao(p)}
+                  accessibilityRole="button" accessibilityLabel={`Editar placa ${i + 1}`}>
+                  <Ionicons name="pencil" size={16} color={colors.textSecondary} />
+                </TouchableOpacity>
+              } />
+            <TouchableOpacity style={s.btnDanger} onPress={() => setSelecionada(p)}
+              accessibilityRole="button" accessibilityLabel={`Desconectar placa ${i + 1}`}>
               <Text style={s.btnDangerText}>Desconectar</Text>
             </TouchableOpacity>
           </View>
         ))}
 
         <TouchableOpacity style={[s.btnGhost, { marginTop: 8, flexDirection: 'row', gap: 8 }]}
-          onPress={() => nav.navigate('ConectarPlaca')}>
+          onPress={() => nav.navigate('ConectarPlaca')} accessibilityRole="button">
           <Ionicons name="add" size={16} color={colors.textPrimary} />
           <Text style={s.btnGhostText}>Conectar outra placa</Text>
         </TouchableOpacity>
@@ -122,10 +122,11 @@ export default function GerenciarPlacas() {
               leituras.
             </Text>
             <View style={[s.row, { gap: 10, marginTop: 20 }]}>
-              <TouchableOpacity style={[s.btnGhost, { flex: 1 }]} onPress={() => setSelecionada(null)}>
+              <TouchableOpacity style={[s.btnGhost, { flex: 1 }]} onPress={() => setSelecionada(null)} accessibilityRole="button">
                 <Text style={s.btnGhostText}>Cancelar</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[s.btnDanger, { flex: 1 }]} disabled={desconectando} onPress={confirmarDesconexao}>
+              <TouchableOpacity style={[s.btnDanger, { flex: 1 }]} disabled={desconectando} onPress={confirmarDesconexao}
+                accessibilityRole="button" accessibilityState={{ disabled: desconectando }} accessibilityLabel="Confirmar desconexão da placa">
                 {desconectando ? <ActivityIndicator color={colors.flame} /> : <Text style={s.btnDangerText}>Desconectar</Text>}
               </TouchableOpacity>
             </View>
@@ -148,10 +149,11 @@ export default function GerenciarPlacas() {
                 valor={capGas} onChange={setCapGas} />
             </View>
             <View style={[s.row, { gap: 10, marginTop: 20 }]}>
-              <TouchableOpacity style={[s.btnGhost, { flex: 1 }]} onPress={() => setEditando(null)}>
+              <TouchableOpacity style={[s.btnGhost, { flex: 1 }]} onPress={() => setEditando(null)} accessibilityRole="button">
                 <Text style={s.btnGhostText}>Cancelar</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[s.btnPrimary, { flex: 1 }]} disabled={salvando} onPress={salvarCapacidade}>
+              <TouchableOpacity style={[s.btnPrimary, { flex: 1 }]} disabled={salvando} onPress={salvarCapacidade}
+                accessibilityRole="button" accessibilityState={{ disabled: salvando }}>
                 {salvando ? <ActivityIndicator color={colors.inkText} /> : <Text style={s.btnPrimaryText}>Salvar</Text>}
               </TouchableOpacity>
             </View>

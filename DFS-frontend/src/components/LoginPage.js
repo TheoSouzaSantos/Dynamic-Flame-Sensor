@@ -55,7 +55,11 @@ export default function LoginPage() {
   return (
     <Screen style={s.screen}>
       <View style={{ paddingHorizontal: 20, paddingTop: 16 }}>
-        <TouchableOpacity style={s.iconBtn} onPress={() => nav.navigate('Intro')}>
+        <TouchableOpacity
+          style={s.iconBtn}
+          onPress={() => nav.navigate('Intro')}
+          accessibilityRole="button"
+          accessibilityLabel="Voltar">
           <Ionicons name="arrow-back" size={18} color={colors.textPrimary} />
         </TouchableOpacity>
       </View>
@@ -80,13 +84,19 @@ export default function LoginPage() {
             value={senha} onChangeText={setSenha} placeholder="••••••••"
             secureTextEntry={!senhaVisible}
             suffix={
-              <TouchableOpacity onPress={() => setSenhaVisible((v) => !v)} style={{ padding: 4 }}>
+              <TouchableOpacity
+                onPress={() => setSenhaVisible((v) => !v)}
+                style={{ padding: 4 }}
+                hitSlop={{ top: 9, bottom: 9, left: 9, right: 9 }}
+                accessibilityRole="button"
+                accessibilityLabel={senhaVisible ? 'Ocultar senha' : 'Mostrar senha'}>
                 <Ionicons name={senhaVisible ? 'eye-off-outline' : 'eye-outline'} size={18}
                   color={colors.textMuted} />
               </TouchableOpacity>
             } />
-          <TouchableOpacity onPress={() => nav.navigate('EsqueciSenha')}>
-            <Text style={{ marginTop: 4, fontSize: 12.5, fontWeight: '600', color: colors.flame }}>
+          <TouchableOpacity onPress={() => nav.navigate('EsqueciSenha')} accessibilityRole="button"
+            hitSlop={{ top: 13, bottom: 13, left: 13, right: 13 }}>
+            <Text style={[s.actionText, { marginTop: 4, color: colors.flame }]}>
               Esqueci minha senha
             </Text>
           </TouchableOpacity>
@@ -94,16 +104,20 @@ export default function LoginPage() {
       </Animated.View>
 
       <View style={{ paddingHorizontal: 26, paddingBottom: 24, gap: 12 }}>
-        <TouchableOpacity style={s.btnPrimary} onPress={EnviarLogin}>
+        <TouchableOpacity style={s.btnPrimary} onPress={EnviarLogin} accessibilityRole="button">
           <Text style={s.btnPrimaryText}>Entrar</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[s.btnGhost, { flexDirection: 'row', gap: 10, justifyContent: 'center', opacity: googlePronto ? 1 : 0.5 }]}
-          disabled={!googlePronto || entrandoComGoogle} onPress={EntrarComGoogle}>
+          disabled={!googlePronto || entrandoComGoogle} onPress={EntrarComGoogle}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: !googlePronto || entrandoComGoogle }}
+          accessibilityLabel="Entrar com Google">
           <Ionicons name="logo-google" size={16} color={colors.textPrimary} />
           <Text style={s.btnGhostText}>{entrandoComGoogle ? 'Entrando...' : 'Entrar com Google'}</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => nav.navigate('Cadastro')}>
+        <TouchableOpacity onPress={() => nav.navigate('Cadastro')} accessibilityRole="button"
+          hitSlop={{ top: 13, bottom: 13, left: 13, right: 13 }}>
           <Text style={[s.body12, { textAlign: 'center' }]}>Não tem conta? Criar conta</Text>
         </TouchableOpacity>
       </View>
@@ -116,7 +130,7 @@ function Field({ label, focused, suffix, s, colors, ...props }) {
     <View style={s.inputGroup}>
       <Text style={s.label}>{label}</Text>
       <View style={[s.inputRow, focused && s.inputRowFocused]}>
-        <TextInput {...props} style={s.input} placeholderTextColor={colors.textMuted} />
+        <TextInput {...props} style={s.input} placeholderTextColor={colors.textMuted} accessibilityLabel={label} />
         {suffix}
       </View>
     </View>

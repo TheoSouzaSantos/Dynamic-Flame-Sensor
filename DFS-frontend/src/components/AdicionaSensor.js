@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../css/theme';
 import makeStyles from '../css/styles';
 import Screen from './Screen';
@@ -42,10 +42,10 @@ export default function AdicionaSensor() {
           mais sensores de chama ou gás.
         </Text>
         <TouchableOpacity style={[s.btnPrimary, { marginTop: 22, width: '100%' }]}
-          onPress={() => nav.navigate('ConectarPlaca')}>
+          onPress={() => nav.navigate('ConectarPlaca')} accessibilityRole="button">
           <Text style={s.btnPrimaryText}>Conectar outra placa</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[s.btnGhost, { marginTop: 10, width: '100%' }]} onPress={() => nav.goBack()}>
+        <TouchableOpacity style={[s.btnGhost, { marginTop: 10, width: '100%' }]} onPress={() => nav.goBack()} accessibilityRole="button">
           <Text style={s.btnGhostText}>Voltar</Text>
         </TouchableOpacity>
       </Screen>
@@ -69,7 +69,7 @@ export default function AdicionaSensor() {
   return (
     <Screen style={s.screen}>
       <View style={[s.row, { gap: 14, paddingHorizontal: 20, paddingTop: 10 }]}>
-        <TouchableOpacity style={s.iconBtn} onPress={() => nav.goBack()}>
+        <TouchableOpacity style={s.iconBtn} onPress={() => nav.goBack()} accessibilityRole="button" accessibilityLabel="Voltar">
           <Ionicons name="arrow-back" size={17} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={s.kicker}>NOVO SENSOR</Text>
@@ -95,14 +95,14 @@ export default function AdicionaSensor() {
           <Text style={s.label}>NOME</Text>
           <View style={s.inputRow}>
             <TextInput style={s.input} value={nome} onChangeText={setNome}
-              placeholder="Sensor da varanda" placeholderTextColor={colors.textMuted} />
+              placeholder="Sensor da varanda" placeholderTextColor={colors.textMuted} accessibilityLabel="Nome" />
           </View>
         </View>
         <View style={s.inputGroup}>
           <Text style={s.label}>CÔMODO</Text>
           <View style={s.inputRow}>
             <TextInput style={s.input} value={comodo} onChangeText={setComodo}
-              placeholder="Varanda" placeholderTextColor={colors.textMuted} />
+              placeholder="Varanda" placeholderTextColor={colors.textMuted} accessibilityLabel="Cômodo" />
           </View>
         </View>
 
@@ -110,23 +110,25 @@ export default function AdicionaSensor() {
           <View style={[s.rowBetween, { paddingVertical: 6, opacity: saldo.disponivelChama > 0 ? 1 : 0.4 }]}>
             <View style={[s.row, { gap: 10 }]}>
               <Ionicons name="flame" size={18} color={colors.flame} />
-              <Text style={{ fontSize: 13.5, fontWeight: '600', color: colors.textPrimary }}>Detecta chama</Text>
+              <Text style={s.cardTitle}>Detecta chama</Text>
             </View>
             <Switch value={tipoChama} disabled={saldo.disponivelChama === 0}
               onValueChange={setTipoChama}
               trackColor={{ true: colors.flameBorder, false: colors.border }}
-              thumbColor={tipoChama ? colors.flame : colors.card} />
+              thumbColor={tipoChama ? colors.flame : colors.card}
+              accessibilityLabel="Detecta chama" />
           </View>
           <View style={{ height: 1, backgroundColor: colors.border }} />
           <View style={[s.rowBetween, { paddingVertical: 6, opacity: saldo.disponivelGas > 0 ? 1 : 0.4 }]}>
             <View style={[s.row, { gap: 10 }]}>
-              <Ionicons name="cloud-outline" size={18} color={colors.gas} />
-              <Text style={{ fontSize: 13.5, fontWeight: '600', color: colors.textPrimary }}>Detecta gás</Text>
+              <MaterialCommunityIcons name="gas-cylinder" size={18} color={colors.gas} />
+              <Text style={s.cardTitle}>Detecta gás</Text>
             </View>
             <Switch value={tipoGas} disabled={saldo.disponivelGas === 0}
               onValueChange={setTipoGas}
               trackColor={{ true: colors.gasBorder, false: colors.border }}
-              thumbColor={tipoGas ? colors.gas : colors.card} />
+              thumbColor={tipoGas ? colors.gas : colors.card}
+              accessibilityLabel="Detecta gás" />
           </View>
         </View>
 
@@ -138,14 +140,16 @@ export default function AdicionaSensor() {
 
       <View style={{ marginTop: 'auto', flexDirection: 'row', gap: 10,
         paddingHorizontal: 20, paddingBottom: 22 }}>
-        <TouchableOpacity style={[s.btnGhost, { flex: 1 }]} onPress={() => nav.goBack()}>
-          <Text style={[s.btnGhostText, { fontSize: 13.5 }]}>Cancelar</Text>
+        <TouchableOpacity style={[s.btnGhost, { flex: 1 }]} onPress={() => nav.goBack()} accessibilityRole="button">
+          <Text style={s.btnGhostText}>Cancelar</Text>
         </TouchableOpacity>
         <TouchableOpacity
           disabled={enviando || !nome.trim() || (!tipoGas && !tipoChama)}
           style={[s.btnPrimary, { flex: 1.4, opacity: enviando || !nome.trim() || (!tipoGas && !tipoChama) ? 0.5 : 1 }]}
-          onPress={salvar}>
-          <Text style={[s.btnPrimaryText, { fontSize: 13.5 }]}>{enviando ? 'Salvando...' : 'Salvar sensor'}</Text>
+          onPress={salvar}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: enviando || !nome.trim() || (!tipoGas && !tipoChama) }}>
+          <Text style={s.btnPrimaryText}>{enviando ? 'Salvando...' : 'Salvar sensor'}</Text>
         </TouchableOpacity>
       </View>
     </Screen>

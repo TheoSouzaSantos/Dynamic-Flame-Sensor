@@ -68,24 +68,28 @@ export default function Historico() {
           {eventos.length === 0 && (
             <Text style={s.body14}>Nenhuma leitura registrada ainda.</Text>
           )}
-          {eventos.map((e, i) => (
-            <View key={`${e.serverTs}-${i}`} style={{ flexDirection: 'row', gap: 12 }}>
-              <Text style={[s.mono, { width: 44, textAlign: 'right', lineHeight: 20 }]}>{formatarHora(e.serverTs)}</Text>
-              <View style={{ flex: 1, borderLeftWidth: 1, borderLeftColor: colors.border,
-                paddingLeft: 16, paddingBottom: 18 }}>
-                <View style={{ position: 'absolute', left: -4, top: 6, width: 7, height: 7, borderRadius: 4,
-                  backgroundColor: e.estado === 'chama' ? colors.flame : e.estado === 'gas' ? colors.gas : colors.textMuted }} />
-                <Text style={{ fontSize: 13.5, fontWeight: '500', color: colors.textPrimary }}>
-                  {ROTULOS[e.estado] || e.estado} · {e.sensor}
-                </Text>
-                <Text style={[s.body12, { marginTop: 3 }]}>
-                  {/* O sensor de chama é digital (0/1), então o valor só
-                      diz algo útil para o gás (leitura analógica do MQ-2). */}
-                  {[e.comodo, e.tipo === 'gas' ? `leitura ${e.valor}` : null].filter(Boolean).join(' · ')}
-                </Text>
+          {eventos.map((e, i) => {
+            const detalhe = [e.comodo, e.tipo === 'gas' ? `leitura ${e.valor}` : null].filter(Boolean).join(' · ');
+            return (
+              <View key={`${e.serverTs}-${i}`} style={{ flexDirection: 'row', gap: 12 }}
+                accessible accessibilityLabel={`${formatarHora(e.serverTs)}, ${ROTULOS[e.estado] || e.estado}, ${e.sensor}${detalhe ? `, ${detalhe}` : ''}`}>
+                <Text style={[s.mono, { width: 44, textAlign: 'right', lineHeight: 20 }]}>{formatarHora(e.serverTs)}</Text>
+                <View style={{ flex: 1, borderLeftWidth: 1, borderLeftColor: colors.border,
+                  paddingLeft: 16, paddingBottom: 18 }}>
+                  <View style={{ position: 'absolute', left: -4, top: 6, width: 7, height: 7, borderRadius: 4,
+                    backgroundColor: e.estado === 'chama' ? colors.flame : e.estado === 'gas' ? colors.gas : colors.textMuted }} />
+                  <Text style={s.rowTitle}>
+                    {ROTULOS[e.estado] || e.estado} · {e.sensor}
+                  </Text>
+                  <Text style={[s.body12, { marginTop: 3 }]}>
+                    {/* O sensor de chama é digital (0/1), então o valor só
+                        diz algo útil para o gás (leitura analógica do MQ-2). */}
+                    {detalhe}
+                  </Text>
+                </View>
               </View>
-            </View>
-          ))}
+            );
+          })}
         </ScrollView>
       )}
     </Screen>
