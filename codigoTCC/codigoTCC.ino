@@ -14,7 +14,7 @@
 
 int chama = 32;  // saída digital (D0) do módulo de chama: LOW = chama
 int gas = 34;    // saída analógica (A0) do MQ-2 — GPIO34 é ADC1, funciona com Wi-Fi ligado
-int verde = 4;
+int verde = 5;
 int vermelho = 2;
 int buzzer = 13;
 
@@ -44,7 +44,7 @@ struct EstadoRetry {
 };
 EstadoRetry retryAuth;
 EstadoRetry retryChama;
-EstadoRetry retryGas;
+//EstadoRetry retryGas;
 
 // O intervalo de retry só vale depois de uma FALHA. Depois de um envio bem
 // sucedido a placa pode mandar a próxima leitura na hora — senão uma chama
@@ -235,7 +235,7 @@ void setup()
 {
   Serial.begin(9600);
   pinMode(chama, INPUT);
-  pinMode(gas, INPUT);
+ // pinMode(gas, INPUT);
   pinMode(verde, OUTPUT);
   pinMode(vermelho, OUTPUT);
   pinMode(buzzer, OUTPUT);
@@ -270,28 +270,36 @@ void loop()
 {
   // 1. Sensores: sempre, com ou sem internet.
   int valorChama = digitalRead(chama);
-  int valorGas = analogRead(gas);
+  //int valorGas = analogRead(gas);
   Serial.print("Chama (digital): ");
   Serial.print(valorChama);
-  Serial.print("  Gas (MQ-2): ");
-  Serial.println(valorGas);
+  //Serial.print("  Gas (MQ-2): ");
+  //Serial.println(valorGas);
 
   estadoChama = (valorChama != 1) ? "chama" : "seguro";
-  estadoGas = (valorGas >= LIMITE_GAS) ? "gas" : "seguro";
+ // estadoGas = (valorGas >= LIMITE_GAS) ? "gas" : "seguro";
   bool emAlerta = estadoChama != "seguro" || estadoGas != "seguro";
-
+  Serial.print("Alerta geral: ");
+  Serial.println(emAlerta);
+  
+  Serial.print("LED verde: ");
+  Serial.println(emAlerta ? "DESLIGADO" : "LIGADO");
   if (emAlerta) {
     digitalWrite(verde, LOW);
     if (millis() - ultimaPiscada >= INTERVALO_PISCA) {
       ultimaPiscada = millis();
       alarmeLigado = !alarmeLigado;
       digitalWrite(vermelho, alarmeLigado ? HIGH : LOW);
-      digitalWrite(buzzer, alarmeLigado ? HIGH : LOW);
+      if (alarmeLigado) {
+        tone(buzzer, 2000); // Frequência de 2000 Hz
+      } else {
+          noTone(buzzer);
+      }
     }
   }
   else {
     alarmeLigado = false;
-    digitalWrite(buzzer, LOW);
+    noTone(buzzer);
     digitalWrite(vermelho, LOW);
     digitalWrite(verde, HIGH);
   }
@@ -320,8 +328,8 @@ void loop()
     else {
       bool chamaPronta = podeTentar(retryChama) &&
         (millis() - ultimoEnvioChama >= intervalo || estadoChama != ultimoEstadoEnviadoChama);
-      bool gasPronta = podeTentar(retryGas) &&
-        (millis() - ultimoEnvioGas >= intervalo || estadoGas != ultimoEstadoEnviadoGas);
+      //bool gasPronta = podeTentar(retryGas) &&
+        //(millis() - ultimoEnvioGas >= intervalo || estadoGas != ultimoEstadoEnviadoGas);
 
       tentarChamaPrimeiro = !tentarChamaPrimeiro;
       bool enviouAlgo = false;
@@ -341,21 +349,21 @@ void loop()
           else if (codigo != 401) registrarFalha(retryChama);
           enviouAlgo = true;
         }
-        else if (!vezDaChama && gasPronta) {
-          String estadoEnviado = estadoGas;
-          int codigo = enviarLeitura("gas", INDICE_GAS, estadoEnviado, valorGas);
-          if (sucesso(codigo)) {
-            retryGas.emEspera = false;
-            ultimoEstadoEnviadoGas = estadoEnviado;
-            ultimoEnvioGas = millis();
-          }
-          // 401 = token expirado: o relogin acontece já na próxima volta.
-          else if (codigo != 401) registrarFalha(retryGas);
-          enviouAlgo = true;
+//       // else if (!vezDaChama && gasPronta) {
+//          String estadoEnviado = estadoGas;
+//          int codigo = enviarLeitura("gas", INDICE_GAS, estadoEnviado, valorGas);
+//          if (sucesso(codigo)) {
+//            retryGas.emEspera = false;
+//            ultimoEstadoEnviadoGas = estadoEnviado;
+//            ultimoEnvioGas = millis();
+//          }
+//          // 401 = token expirado: o relogin acontece já na próxima volta.
+//          else if (codigo != 401) registrarFalha(retryGas);
+//          enviouAlgo = true;
         }
       }
     }
+    delay(100);
   }
 
-  delay(100);
-}
+ 
